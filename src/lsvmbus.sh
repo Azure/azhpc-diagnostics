@@ -1,4 +1,5 @@
 #!/bin/bash
+# bash port of the lsvmbus python script
 USAGE_MSG="Usage: lsvmbus [options]
 
 "
