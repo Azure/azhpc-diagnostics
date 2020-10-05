@@ -4,7 +4,7 @@ New-Item -Path $DIAG_DIR -ItemType Directory;
 Set-Location -PAth $DIAG_DIR -PassThru
 
 # Information about compute
-$Uri = "http://169.254.169.254/metadata/instance?api-version=2017-12-01";
+$Uri = "http://169.254.169.254/metadata/instance?api-version=2020-06-01";
 $Headers = @{'Metadata' = 'true'};
 $Metadata = (Invoke-RestMethod -Method GET -Uri $Uri -Headers $Headers).compute
 $Metadata | Out-File metadata.txt;
@@ -21,42 +21,42 @@ $OS_Info, $OS_Type | Out-File os-release.txt
 
 
 # Get Information on the basis of the VM Size
-switch -Regex ($VM_Size)
+# If the compute size is of type N, it must have Nvidia graphics drivers (Only considering Nvidia GPU's)
+if ($VM_Size -match '^*_N.*$')
 {
-    '^.*_N.*$'
+    # Get Nvidia GPU and Driver Infromation
+    $Nvidia_Dev = Get-CimInstance -ClassName Win32_PnPEntity -Filter 'Manufacturer LIKE "Nvidia%"';
+    if($Nvidia_Dev -ne $null -or $Nvidia_Dev -ne "")
     {
-        # Get Nvidia GPU and Driver Infromation
-        $Nvidia_Dev = Get-CimInstance -ClassName Win32_PnPEntity -Filter 'Manufacturer LIKE "Nvidia%"';
-        if($Nvidia_Dev -ne $null -or $Nvidia_Dev -ne "")
-        {
-            $Nvidia_Dev | Out-File nvidia-info.txt;
+        $Nvidia_Dev | Out-File nvidia-info.txt;
 
-            $Nvidia_SMI = & "C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe";
-            $Nvidia_SMI | Out-File nvidia-smi.txt;
+        $Nvidia_SMI = & "C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe";
+        $Nvidia_SMI | Out-File nvidia-smi.txt;
 
-            $Nvidia_SMI_Q = & "C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe" -q;
-            $Nvidia_SMI_Q | Out-File nvidia-smi_q.txt;
-        }
-        else 
-        {
-            Write-Output "No Nvidia Devices Found";
-        }
-        Break;
+        $Nvidia_SMI_Q = & "C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe" -q;
+        $Nvidia_SMI_Q | Out-File nvidia-smi_q.txt;
     }
-
-    '^.*_H.*$'
+    else 
     {
-        # Get InfiniBand Information
-        $Mellanox_Dev = Get-CimInstance -ClassName Win32_PnPEntity -Filter 'Manufacturer LIKE "Mellanox%"';
+        Write-Output "No Nvidia Devices Found";
+    }
+}
+
+# If the compute size supports InfiniBand the VM size should include r
+if ($VM_Size -match '^.*_.*r.*$')
+{
+    # Get InfiniBand Information
+    $Mellanox_Dev = Get-CimInstance -ClassName Win32_PnPEntity -Filter 'Manufacturer LIKE "Mellanox%"';
+    if($Mellanox_Dev -ne $null -or $Mellanox_Dev -ne "")
+    {
         $Mellanox_Dev | Out-File mellanox-info.txt;
-        Break;
-    }
 
-    Default
+        # Capture other information about infiniband (TODO)
+    }
+    else
     {
-        # No N or H size Compute found, Tool is invalid
-        Write-Error "No standard HPC compute found";
-        Break;
+        Write-Output "No InfiniBand Devices Found";
+        
     }
 }
 
