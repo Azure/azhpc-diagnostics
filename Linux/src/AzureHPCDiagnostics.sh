@@ -160,9 +160,9 @@ run_dcgm() {
     enable_persistence_mode
 
     print_info "Running 2min diagnostic"
-    #dcgmi diag -r 2 >"$DIAG_DIR/Nvidia/dcgm-diag-2.log"
+    dcgmi diag -r 2 >"$DIAG_DIR/Nvidia/dcgm-diag-2.log"
     print_info "Running 12min diagnostic"
-    #dcgmi diag -r 3 >"$DIAG_DIR/Nvidia/dcgm-diag-3.log"
+    dcgmi diag -r 3 >"$DIAG_DIR/Nvidia/dcgm-diag-3.log"
 
     # reset state to before script ran
     if [ ! "$nv_hostengine_already_running" = true ]; then
