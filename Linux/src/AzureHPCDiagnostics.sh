@@ -16,7 +16,6 @@
 # - Infiniband
 #   - ibstat.txt
 #   - ibdev_info.txt
-# - Ethernet
 # - Nvidia GPU
 #   - nvidia-smi.txt (human-readable)
 #   - nvidia-smi-debug.dbg (only Nvidia can read)
@@ -146,10 +145,6 @@ run_memory_diags() {
     rm "$DIAG_DIR/Memory/stream.tgz"
 }
 
-run_ethernet_diags() {
-    true
-}
-
 run_infiniband_diags() {
     mkdir -p "$DIAG_DIR/Infiniband"
     print_info "Infiniband VM Detected"
@@ -260,7 +255,6 @@ mkdir -p "$DIAG_DIR"
 run_vm_diags
 run_cpu_diags
 run_memory_diags
-run_ethernet_diags
 
 if is_infiniband_sku "$VM_SIZE"; then
     run_infiniband_diags
