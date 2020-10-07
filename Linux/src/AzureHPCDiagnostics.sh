@@ -12,6 +12,7 @@
 # - CPU
 #   - lscpu.txt
 # - Memory
+#   - stream.txt
 # - Infiniband
 #   - ibstat.txt
 #   - ibdev_info.txt
@@ -37,6 +38,13 @@ METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
 LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/lsvmbus'
 SCRIPT_PATH="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 PKG_ROOT="$(dirname $SCRIPT_PATH)"
+
+# Mapping for stream benchmark(AMD only)
+declare -A CPU_LIST
+CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
+          ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57"
+          ["Standard_HC44rs"]="0 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38"
+          ["HBv3"]="")
 
 ####################################################################################################
 # End Constants
@@ -114,7 +122,28 @@ run_cpu_diags() {
 }
 
 run_memory_diags() {
-    true
+    # Stream Memory tests
+    mkdir -p "$DIAG_DIR/Memory"
+    # Download precompiled stream library
+    wget "https://azhpcscus.blob.core.windows.net/apps/Stream/stream.tgz" -P "$DIAG_DIR/Memory"
+    stream_download="$DIAG_DIR/Memory/stream.tgz"
+    if test -f "$stream_download"; then
+        tar xzf $stream_download -C "$DIAG_DIR/Memory/"
+        # run stream tests
+        stream_bin="$DIAG_DIR/Memory/Stream/stream_zen_double"
+        if test  -f "$stream_bin"; then
+            # run stream stuff
+            $stream_bin 400000000 ${CPU_LIST[$VM_SIZE]} > "$DIAG_DIR/Memory/stream.txt"
+        else
+            echo "$stream_bin does not exist, unable to run stream memory tests."
+        fi
+    else
+        echo "Unable to download stream"
+    fi
+
+    # Clean up
+    rm -rd "$DIAG_DIR/Memory/Stream"
+    rm "$DIAG_DIR/Memory/stream.tgz"
 }
 
 run_ethernet_diags() {
