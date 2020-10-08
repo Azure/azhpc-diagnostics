@@ -12,10 +12,10 @@
 # - CPU
 #   - lscpu.txt
 # - Memory
+#   - stream.txt
 # - Infiniband
 #   - ibstat.txt
 #   - ibdev_info.txt
-# - Ethernet
 # - Nvidia GPU
 #   - nvidia-smi.txt (human-readable)
 #   - nvidia-smi-debug.dbg (only Nvidia can read)
@@ -37,6 +37,11 @@ METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
 LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/lsvmbus'
 SCRIPT_PATH="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 PKG_ROOT="$(dirname $SCRIPT_PATH)"
+
+# Mapping for stream benchmark(AMD only)
+declare -A CPU_LIST
+CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
+          ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
 
 ####################################################################################################
 # End Constants
@@ -114,11 +119,28 @@ run_cpu_diags() {
 }
 
 run_memory_diags() {
-    true
-}
+    # Stream Memory tests
+    mkdir -p "$DIAG_DIR/Memory"
+    # Download precompiled stream library
+    wget --quite "https://azhpcscus.blob.core.windows.net/apps/Stream/stream.tgz" -P "$DIAG_DIR/Memory"
+    local stream_download="$DIAG_DIR/Memory/stream.tgz"
+    if [ -f "$stream_download" ]; then
+        tar xzf $stream_download -C "$DIAG_DIR/Memory/"
+        # run stream tests
+        local stream_bin="$DIAG_DIR/Memory/Stream/stream_zen_double"
+        if [ -f "$stream_bin" ]; then
+            # run stream stuff
+            $stream_bin 400000000 "${CPU_LIST[$VM_SIZE]}" > "$DIAG_DIR/Memory/stream.txt"
+        else
+            print_info "$stream_bin does not exist, unable to run stream memory tests."
+        fi
+    else
+        print_info "Unable to download stream"
+    fi
 
-run_ethernet_diags() {
-    true
+    # Clean up
+    rm -r "$DIAG_DIR/Memory/Stream"
+    rm "$DIAG_DIR/Memory/stream.tgz"
 }
 
 run_infiniband_diags() {
@@ -231,7 +253,6 @@ mkdir -p "$DIAG_DIR"
 run_vm_diags
 run_cpu_diags
 run_memory_diags
-run_ethernet_diags
 
 if is_infiniband_sku "$VM_SIZE"; then
     run_infiniband_diags
