@@ -21,6 +21,8 @@
 #   - nvidia-smi-debug.dbg (only Nvidia can read)
 #   - dcgm-diag-2.log
 #   - dcgm-diag-3.log
+#   - nvvs.log
+#   - stats_pcie.json
 # - AMD GPU
 #
 # Outputs:
@@ -34,14 +36,35 @@
 ####################################################################################################
 
 METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
+STREAM_URL='https://azhpcscus.blob.core.windows.net/apps/Stream/stream.tgz'
 LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/lsvmbus'
-SCRIPT_PATH="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
-PKG_ROOT="$(dirname $SCRIPT_PATH)"
+SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+PKG_ROOT="$(dirname $SCRIPT_DIR)"
 
 # Mapping for stream benchmark(AMD only)
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
+VERSION_INFO="0.0.1"
+
+HELP_MESSAGE="
+Usage: $0 [OPTION]
+Gather diagnostic info for the current Azure HPC VM.
+Has multiple run levels
+Exports data into a tarball in the script directory.
+
+Output control:
+ -d, --dir=DIR         specify custom output location
+
+Miscellaneous:
+ -V, --version         display version information and exit
+ -h, --help            display this help text and exit
+ -q, --quiet           suppress output
+
+Execution Mode:
+ --gpu-level=GPU_LEVEL set to 2 (default 1) to set dcgmi run level to 3 (default 2)
+ --mem-level=MEM_LEVEL set to 1 to run stream test (default 0)
+"
 
 ####################################################################################################
 # End Constants
@@ -50,10 +73,30 @@ CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,6
 ####################################################################################################
 # Begin Utility Functions
 ####################################################################################################
-print_info() {
-    if [ "$VERBOSE" -eq 1 ]; then
+
+
+print_log() {
+    if [ "$QUIET" != true ]; then
         echo "$@"
     fi
+}
+
+print_info() {
+    if [ "$VERBOSE" -ge 1 ]; then
+        echo "$@"
+    fi
+}
+
+validate_run_level() {
+    # test if arg is integer
+    if ! test "$1" -eq "$1" 2>/dev/null; then
+        failwith "Invalid run level: $1. Should be integer."
+    fi
+}
+
+validate_out_dir() {
+    mkdir -p "$1" ||
+    failwith "Invalid output directory: $1." 
 }
 
 failwith() {
@@ -94,9 +137,12 @@ run_lsvmbus_resilient() {
     elif PYTHON=$(get_python_command); then
         print_info "no lsvmbus installed. pulling script from github"
         LSVMBUS_PATH=$(mktemp)
-        curl -s "$LSVMBUS_URL" >"$LSVMBUS_PATH"
-        $PYTHON "$LSVMBUS_PATH" -vv
-        rm -f "$LSVMBUS_PATH"
+        if curl -s "$LSVMBUS_URL" > "$LSVMBUS_PATH"; then
+            $PYTHON "$LSVMBUS_PATH" -vv
+            rm -f "$LSVMBUS_PATH"
+        else
+            print_info 'could neither find nor download lsvmbus'
+        fi
     else
         print_info 'neither lsvmbus nor python detected'
     fi
@@ -114,33 +160,37 @@ run_vm_diags() {
 
 run_cpu_diags() {
     mkdir -p "$DIAG_DIR/CPU"
-    # numa_domains="$(numactl -H |grep available|cut -d' ' -f2)"
     lscpu >"$DIAG_DIR/CPU/lscpu.txt"
 }
 
 run_memory_diags() {
+    local STREAM_PATH="$DIAG_DIR/Memory/stream.tgz"
+
     # Stream Memory tests
     mkdir -p "$DIAG_DIR/Memory"
+
     # Download precompiled stream library
-    wget --quite "https://azhpcscus.blob.core.windows.net/apps/Stream/stream.tgz" -P "$DIAG_DIR/Memory"
-    local stream_download="$DIAG_DIR/Memory/stream.tgz"
-    if [ -f "$stream_download" ]; then
-        tar xzf $stream_download -C "$DIAG_DIR/Memory/"
+    if curl -s "$STREAM_URL" > "$STREAM_PATH"; then
+        tar xzf $STREAM_PATH -C "$DIAG_DIR/Memory/"
+
         # run stream tests
         local stream_bin="$DIAG_DIR/Memory/Stream/stream_zen_double"
         if [ -f "$stream_bin" ]; then
             # run stream stuff
-            $stream_bin 400000000 "${CPU_LIST[$VM_SIZE]}" > "$DIAG_DIR/Memory/stream.txt"
+            "$stream_bin" 400000000 "${CPU_LIST[$VM_SIZE]}" > "$DIAG_DIR/Memory/stream.txt"
         else
-            print_info "$stream_bin does not exist, unable to run stream memory tests."
+            print_info "failed to unpack stream binary to $stream_bin, unable to run stream memory tests."
         fi
+
+        # Clean up
+        rm -r "$DIAG_DIR/Memory/Stream"
+        rm "$DIAG_DIR/Memory/._Stream"
+        rm "$DIAG_DIR/Memory/stream.tgz"
     else
-        print_info "Unable to download stream"
+        print_info "Unable to download stream memory benchmark"
     fi
 
-    # Clean up
-    rm -r "$DIAG_DIR/Memory/Stream"
-    rm "$DIAG_DIR/Memory/stream.tgz"
+    
 }
 
 run_infiniband_diags() {
@@ -169,6 +219,7 @@ run_dcgm() {
     local nv_hostengine_out
     local nv_hostengine_already_running=false
     
+    # start hostengine, remember if it was already running
     if ! nv_hostengine_out=$(nv-hostengine); then
         # e.g. 'Host engine already running with pid 5555'
         if echo "$nv_hostengine_out" | grep -q 'already running'; then
@@ -179,14 +230,32 @@ run_dcgm() {
         fi
     fi
 
-    enable_persistence_mode
+    # enable_persistence_mode for all gpus
+    local gpus_wout_persistence=$(dcgmi diag -r 1 | 
+        grep -A1 'Persistence Mode.*Fail' | 
+        grep -o 'GPU [[:digit:]]\+' | 
+        awk '{print $2}'
+    )
+    for id in "$gpus_wout_persistence"; do
+        nvidia-smi -i "$id" -pm 1 >/dev/null
+    done
 
     print_info "Running 2min diagnostic"
     dcgmi diag -r 2 >"$DIAG_DIR/Nvidia/dcgm-diag-2.log"
-    print_info "Running 12min diagnostic"
-    dcgmi diag -r 3 >"$DIAG_DIR/Nvidia/dcgm-diag-3.log"
+
+    if [ "$GPU_LEVEL" -gt 1 ]; then
+        print_info "Running 12min diagnostic"
+        dcgmi diag -r 3 >"$DIAG_DIR/Nvidia/dcgm-diag-3.log"
+    fi
+
+    # because dcgmi makes files in working dir
+    mv nvvs.log "$DIAG_DIR/Nvidia"
+    mv stats_pcie.json "$DIAG_DIR/Nvidia"
 
     # reset state to before script ran
+    for id in "$gpus_wout_persistence"; do
+        nvidia-smi -i "$id" -pm 0 >/dev/null
+    done
     if [ ! "$nv_hostengine_already_running" = true ]; then
         nv-hostengine --term >/dev/null
     fi
@@ -215,16 +284,46 @@ run_nvidia_diags() {
 # Begin Option Parsing
 ####################################################################################################
 
-optstring=':v'
-
 VERBOSE=0
+GPU_LEVEL=1
+MEM_LEVEL=0
+DISPLAY_HELP=false
+# should be /opt/azurehpc/diagnostics
+DIAG_DIR_LOC="$SCRIPT_DIR"
 
-while getopts ${optstring} arg; do
-    case "${arg}" in
-        v) VERBOSE=1 ;;
-        *) echo "$0: error: no such option: -${OPTARG}"; exit 1 ;;
-    esac
+# Read in options
+PARSED_OPTIONS=$(getopt -n "$0"  -o d:h:qvV --long "dir:,help,gpu-level:,mem-level:,quiet,verbose,version"  -- "$@")
+if [ "$?" -ne 0 ]; then
+        echo "$HELP_MESSAGE"
+        exit 1
+fi
+eval set -- "$PARSED_OPTIONS"
+ 
+while [ "$1" != "--" ]; do
+  case "$1" in
+    -d|--dir)
+        shift
+        validate_out_dir "$1"
+        DIAG_DIR_LOC="$1"
+        ;;
+    --gpu-level) 
+        shift
+        validate_run_level "$1"
+        GPU_LEVEL="$1"
+        ;;
+    -h|--help) DISPLAY_HELP=true;;
+    --mem-level) 
+        shift
+        validate_run_level "$1"
+        MEM_LEVEL="$1"
+        ;;
+    -q|--quiet) QUIET=true;;
+    -v|--verbose) VERBOSE=$((i+1));;
+    -V|--version) DISPLAY_VERSION=true;;
+  esac
+  shift
 done
+shift
 
 ####################################################################################################
 # End Option Parsing
@@ -233,6 +332,16 @@ done
 ####################################################################################################
 # Begin Main Script
 ####################################################################################################
+
+if [ "$DISPLAY_VERSION" = true ]; then
+    echo "$VERSION_INFO"
+    exit 0
+fi
+
+if [ "$DISPLAY_HELP" = true ]; then
+    echo "$HELP_MESSAGE"
+    exit 0
+fi
 
 if [ $(whoami) != 'root' ]; then
     failwith 'This script requires root privileges to run. Please run again with sudo'
@@ -245,29 +354,39 @@ VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"
 VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
 TIMESTAMP=$(date -u +"%F.UTC%H.%M.%S")
 
-DIAG_DIR="$VM_ID.$TIMESTAMP"
+DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
+
 rm -r "$DIAG_DIR" 2>/dev/null
 mkdir -p "$DIAG_DIR"
 
-
+print_log "Gathering VM Info"
 run_vm_diags
+print_log "Gathering CPU Info"
 run_cpu_diags
-run_memory_diags
+
+if [ "$MEM_LEVEL" -gt 0 ]; then
+    print_log "Running Memory Performance Test"
+    run_memory_diags
+fi
 
 if is_infiniband_sku "$VM_SIZE"; then
+    print_log "Gathering Infiniband Info"
     run_infiniband_diags
 fi
 
 if is_nvidia_sku "$VM_SIZE"; then
+    print_log "Running Nvidia GPU Diagnostics"
     run_nvidia_diags
 fi
 
 if is_amd_gpu_sku "$VM_SIZE"; then
+    print_log "Gathering AMD GPU Info"
     run_amd_gpu_diags
 fi
 
-tar czf "$DIAG_DIR.tar.gz" "$DIAG_DIR" && rm -r "$DIAG_DIR"
-echo "$DIAG_DIR.tar.gz"
+tar czf "$DIAG_DIR.tar.gz" -C "$DIAG_DIR_LOC" "$VM_ID.$TIMESTAMP"  2>/dev/null && rm -r "$DIAG_DIR"
+print_log 'Placing diagnostic files in the following location:'
+print_log "$DIAG_DIR.tar.gz"
 
 ####################################################################################################
 # End Main Script
