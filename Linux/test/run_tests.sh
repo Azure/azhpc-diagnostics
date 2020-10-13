@@ -13,9 +13,7 @@ VM/metadata.json"
 NVIDIA_FILENAMES="Nvidia/
 Nvidia/nvidia-smi.txt
 Nvidia/nvidia-smi-debug.dbg
-Nvidia/dcgm-diag-2.log
-Nvidia/nvvs.log
-Nvidia/stats_pcie.json"
+Nvidia/dcgm-diag-2.log"
 
 DCGM_3_FILENAMES="Nvidia/dcgm-diag-3.log"
 
@@ -27,8 +25,8 @@ Infiniband/ibstat.txt
 Infiniband/ibv_devinfo.txt"
 
 sort_and_compare() {
-    local a=$(echo "$1" | sort)
-    local b=$(echo "$2" | sort)
+    local a=$(echo "$1" | sort | grep -v 'Nvidia/stats_\|Nvidia/nvvs.log')
+    local b=$(echo "$2" | sort | grep -v 'Nvidia/stats_\|Nvidia/nvvs.log')
     diff <(echo "$a") <(echo "$b")
 }
 

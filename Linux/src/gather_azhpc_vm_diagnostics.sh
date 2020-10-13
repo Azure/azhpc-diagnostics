@@ -218,6 +218,9 @@ enable_persistence_mode() {
 run_dcgm() {
     local nv_hostengine_out
     local nv_hostengine_already_running=false
+
+    # because dcgmi makes files in working dir
+    pushd "$DIAG_DIR/Nvidia" >/dev/null
     
     # start hostengine, remember if it was already running
     if ! nv_hostengine_out=$(nv-hostengine); then
@@ -241,16 +244,13 @@ run_dcgm() {
     done
 
     print_info "Running 2min diagnostic"
-    dcgmi diag -r 2 >"$DIAG_DIR/Nvidia/dcgm-diag-2.log"
+    dcgmi diag -r 2 >dcgm-diag-2.log
 
     if [ "$GPU_LEVEL" -gt 1 ]; then
         print_info "Running 12min diagnostic"
-        dcgmi diag -r 3 >"$DIAG_DIR/Nvidia/dcgm-diag-3.log"
+        dcgmi diag -r 3 >dcgm-diag-3.log
     fi
 
-    # because dcgmi makes files in working dir
-    mv nvvs.log "$DIAG_DIR/Nvidia"
-    mv stats_pcie.json "$DIAG_DIR/Nvidia"
 
     # reset state to before script ran
     for id in "$gpus_wout_persistence"; do
@@ -259,6 +259,8 @@ run_dcgm() {
     if [ ! "$nv_hostengine_already_running" = true ]; then
         nv-hostengine --term >/dev/null
     fi
+
+    popd >/dev/null
 }
 
 run_nvidia_diags() {
