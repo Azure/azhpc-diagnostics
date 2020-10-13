@@ -15,7 +15,7 @@
 #   - stream.txt
 # - Infiniband
 #   - ibstat.txt
-#   - ibdev_info.txt
+#   - ibv_devinfo.txt
 # - Nvidia GPU
 #   - nvidia-smi.txt (human-readable)
 #   - nvidia-smi-debug.dbg (only Nvidia can read)
@@ -36,7 +36,7 @@
 ####################################################################################################
 
 METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
-STREAM_URL='https://azhpcscus.blob.core.windows.net/apps/Stream/stream.tgz'
+STREAM_URL='https://azhpcstor.blob.core.windows.net/diagtool-binaries/stream.tgz'
 LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/lsvmbus'
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 PKG_ROOT="$(dirname $SCRIPT_DIR)"
@@ -292,7 +292,7 @@ DISPLAY_HELP=false
 DIAG_DIR_LOC="$SCRIPT_DIR"
 
 # Read in options
-PARSED_OPTIONS=$(getopt -n "$0"  -o d:h:qvV --long "dir:,help,gpu-level:,mem-level:,quiet,verbose,version"  -- "$@")
+PARSED_OPTIONS=$(getopt -n "$0"  -o d:hqvV --long "dir:,help,gpu-level:,mem-level:,quiet,verbose,version"  -- "$@")
 if [ "$?" -ne 0 ]; then
         echo "$HELP_MESSAGE"
         exit 1
