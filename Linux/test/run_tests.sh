@@ -12,9 +12,9 @@ VM/metadata.json"
 
 NVIDIA_FILENAMES="Nvidia/
 Nvidia/nvidia-smi.txt
-Nvidia/nvidia-smi-debug.dbg
-Nvidia/dcgm-diag-2.log"
+Nvidia/nvidia-smi-debug.dbg"
 
+DCGM_2_FILENAMES="Nvidia/dcgm-diag-2.log"
 DCGM_3_FILENAMES="Nvidia/dcgm-diag-3.log"
 
 MEMORY_FILENAMES="Memory/
@@ -66,6 +66,9 @@ fi
 
 if [ "$NVIDIA_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$NVIDIA_FILENAMES"))
+    if [ "$DCGM_INSTALLED" = true ];then
+        BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$DCGM_2_FILENAMES"))
+    fi
 fi
 
 overall_retcode=0

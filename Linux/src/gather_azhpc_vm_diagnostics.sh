@@ -194,9 +194,9 @@ run_memory_diags() {
 }
 
 run_infiniband_diags() {
-    mkdir -p "$DIAG_DIR/Infiniband"
     print_info "Infiniband VM Detected"
     if command -v ibstat >/dev/null; then
+        mkdir -p "$DIAG_DIR/Infiniband"
         ibstat > "$DIAG_DIR/Infiniband/ibstat.txt"
         ibv_devinfo > "$DIAG_DIR/Infiniband/ibv_devinfo.txt"
     else
