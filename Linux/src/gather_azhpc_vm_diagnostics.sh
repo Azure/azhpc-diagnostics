@@ -9,6 +9,11 @@
 #   - waagent.log
 #   - lspci.txt
 #   - lsvmbus.log
+#   - ipconfig.txt
+#   - sysctl.txt
+#   - uname.txt
+#   - dmidecode.txt
+#   - syslog
 # - CPU
 #   - lscpu.txt
 # - Memory
@@ -16,6 +21,7 @@
 # - Infiniband
 #   - ibstat.txt
 #   - ibv_devinfo.txt
+#   - pkey0.txt
 # - Nvidia GPU
 #   - nvidia-smi.txt (human-readable)
 #   - nvidia-smi-debug.dbg (only Nvidia can read)
@@ -152,10 +158,17 @@ run_vm_diags() {
     mkdir -p "$DIAG_DIR/VM"
 
     echo "$METADATA" >"$DIAG_DIR/VM/metadata.json"
-    dmesg -T > "$DIAG_DIR/VM/dmesg.log"
+    dmesg -T >"$DIAG_DIR/VM/dmesg.log"
     cp /var/log/waagent.log "$DIAG_DIR/VM/waagent.log"
     lspci -vv >"$DIAG_DIR/VM/lspci.txt"
     run_lsvmbus_resilient >"$DIAG_DIR/VM/lsvmbus.log"
+    ip -s -h a >"$DIAG_DIR/VM/ifconfig.txt"
+    # supressing sysctl's o/p
+    sysctl -a --ignore 2>/dev/null >"$DIAG_DIR/VM/sysctl.txt"
+    uname -a >"$DIAG_DIR/VM/uname.txt"
+    dmidecode >"$DIAG_DIR/VM/dmidecode.txt"
+    cp /var/log/syslog "$DIAG_DIR/VM/syslog"
+
 }
 
 run_cpu_diags() {
@@ -176,8 +189,13 @@ run_memory_diags() {
         # run stream tests
         local stream_bin="$DIAG_DIR/Memory/Stream/stream_zen_double"
         if [ -f "$stream_bin" ]; then
-            # run stream stuff
-            "$stream_bin" 400000000 "${CPU_LIST[$VM_SIZE]}" > "$DIAG_DIR/Memory/stream.txt"
+            if [[ ${CPU_LIST[$VM_SIZE]+abc} ]]; then
+                # run stream stuff
+                "$stream_bin" 400000000 "${CPU_LIST[$VM_SIZE]}" > "$DIAG_DIR/Memory/stream.txt"
+            else
+                print_info "Current VM Size is not supported for stream tests"
+                echo "Current VM Size is not supported for stream tests" > "$DIAG_DIR/Memory/stream.txt" 
+            fi
         else
             print_info "failed to unpack stream binary to $stream_bin, unable to run stream memory tests."
         fi
@@ -199,6 +217,7 @@ run_infiniband_diags() {
         mkdir -p "$DIAG_DIR/Infiniband"
         ibstat > "$DIAG_DIR/Infiniband/ibstat.txt"
         ibv_devinfo > "$DIAG_DIR/Infiniband/ibv_devinfo.txt"
+        cp /sys/class/infiniband/mlx5_0/ports/pkeys/0 "$DIAG_DIR/Infiniband/pkey0.txt"
     else
         print_info "No Infiniband Driver Detected"
     fi
