@@ -86,9 +86,10 @@ sudo_basic_script_test(){
         EXPECTED_FILENAMES="$BASE_FILENAMES"
         # If second argument is given then add those files
         if [ "$#" -eq 2 ]; then
-            EXPECTED_FILENAMES=$(cat <(echo "$2"))
+            EXPECTED_FILENAMES=$(cat <(echo "$EXPECTED_FILENAMES") <(echo "$2"))
+            echo "$EXPECTED_FILENAMES"
         fi
-        
+    
         # Check the output line count for verbose and quiet arguments
         if [ "$1" = "-v"  -o "$1" = "--verbose" ]; then
             if [ $(echo "$output" | wc -l) -le 2 ]; then
@@ -154,6 +155,10 @@ if [ "$NVIDIA_PRESENT" = true ];then
     fi
 fi
 
+if [ "$DCGM_INSTALLED" != true ]; then
+    DCGM_3_FILENAMES=""
+fi
+
 overall_retcode=0
 
 
@@ -204,26 +209,5 @@ sudo_basic_script_test --mem-level=1 $MEMORY_FILENAMES
 # raised gpu-level
 echo 'Testing with --gpu-level=2'
 sudo_basic_script_test --gpu-level=2 $DCGM_3_FILENAMES
-
-# output=$(sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" --gpu-level=2)
-# if [ $? -eq 0 ]; then
-#     tarball=$(echo "$output" | tail -1)
-#     filenames=$(tar xzvf "$tarball" | sed 's|^[^/]*/||')
-
-#     if [ "$DCGM_INSTALLED" = true ]; then
-#         EXPECTED_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$DCGM_3_FILENAMES"))
-#     else
-#         EXPECTED_FILENAMES="$BASE_FILENAMES"
-#     fi
-#     if ! sort_and_compare "$EXPECTED_FILENAMES" "$filenames"; then
-#         echo 'FAIL'
-#         overall_retcode=1
-#     fi
-#     rm -r $(basename "$tarball" .tar.gz)
-# else
-#     echo 'FAIL'
-#     overall_retcode=1
-# fi
-# rm -f "$tarball"
 
 exit $overall_retcode

@@ -159,7 +159,11 @@ run_vm_diags() {
 
     echo "$METADATA" >"$DIAG_DIR/VM/metadata.json"
     dmesg -T >"$DIAG_DIR/VM/dmesg.log"
-    cp /var/log/waagent.log "$DIAG_DIR/VM/waagent.log"
+    if [ -f /var/log/waagent.log ]; then
+        cp /var/log/waagent.log "$DIAG_DIR/VM/waagent.log"
+    else
+        echo 'No waagent logs found' >"$DIAG_DIR/VM/waagent.log" 
+    fi
     lspci -vv >"$DIAG_DIR/VM/lspci.txt"
     run_lsvmbus_resilient >"$DIAG_DIR/VM/lsvmbus.log"
     ip -s -h a >"$DIAG_DIR/VM/ifconfig.txt"
@@ -167,8 +171,11 @@ run_vm_diags() {
     sysctl -a --ignore 2>/dev/null >"$DIAG_DIR/VM/sysctl.txt"
     uname -a >"$DIAG_DIR/VM/uname.txt"
     dmidecode >"$DIAG_DIR/VM/dmidecode.txt"
-    cp /var/log/syslog "$DIAG_DIR/VM/syslog"
-
+    if [ -f /var/log/syslog ]; then
+        cp /var/log/syslog "$DIAG_DIR/VM/syslog"
+    else
+        echo 'No syslogs found' >"$DIAG_DIR/VM/syslog"
+    fi
 }
 
 run_cpu_diags() {
@@ -217,7 +224,11 @@ run_infiniband_diags() {
         mkdir -p "$DIAG_DIR/Infiniband"
         ibstat > "$DIAG_DIR/Infiniband/ibstat.txt"
         ibv_devinfo > "$DIAG_DIR/Infiniband/ibv_devinfo.txt"
-        cp /sys/class/infiniband/mlx5_0/ports/pkeys/0 "$DIAG_DIR/Infiniband/pkey0.txt"
+        if [ -f /sys/class/infiniband/mlx5_0/ports/pkeys/0 ]; then
+            cp /sys/class/infiniband/mlx5_0/ports/pkeys/0 "$DIAG_DIR/Infiniband/pkey0.txt"
+        else
+            echo 'No pkeys found' >"$DIAG_DIR/Infiniband/pkeys0.txt"
+        fi
     else
         print_info "No Infiniband Driver Detected"
     fi
