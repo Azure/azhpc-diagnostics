@@ -22,7 +22,7 @@ This section describes the output of the script and the configuration options av
 | -V | --version |  | display version information and exit | --version | Outputs 0.0.1 |
 | -h | --help |  | display help text | -h | Outputs the help message |
 | -q | --quiet |  | suppress output | --quiet | Suppresses all stdout output |
-|  | --gpu-level | 1 (default) or 2 | GPU diagnostics run-level | --gpu-level=2 | Sets dcgmi run-level to 3 |
+|  | --gpu-level | 2 (default) or 3 | GPU diagnostics run-level | --gpu-level=3 | Sets dcgmi run-level to 3 |
 |  | --mem-level | 0 (default) or 1 | Memory diagnostics run-level | --mem-level=1 | Enables stream benchmark test |
 
 ## Tarball Structure
