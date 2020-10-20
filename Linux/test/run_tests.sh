@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
 
 BASE_FILENAMES="
 CPU/
@@ -207,7 +209,7 @@ echo 'Testing with --mem-level=1'
 sudo_basic_script_test --mem-level=1 $MEMORY_FILENAMES
 
 # raised gpu-level
-echo 'Testing with --gpu-level=2'
+echo 'Testing with --gpu-level=3'
 sudo_basic_script_test --gpu-level=2 $DCGM_3_FILENAMES
 
 exit $overall_retcode

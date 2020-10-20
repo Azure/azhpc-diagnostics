@@ -28,12 +28,13 @@
 #   - dcgm-diag-2.log
 #   - dcgm-diag-3.log
 #   - nvvs.log
-#   - stats_pcie.json
-# - AMD GPU
+#   - stats_*.json
 #
 # Outputs:
 # - name of tarball to stdout
 # - tarball of all logs
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
 
 
 
@@ -68,8 +69,8 @@ Miscellaneous:
  -q, --quiet           suppress output
 
 Execution Mode:
- --gpu-level=GPU_LEVEL set to 2 (default 1) to set dcgmi run level to 3 (default 2)
- --mem-level=MEM_LEVEL set to 1 to run stream test (default 0)
+ --gpu-level=GPU_LEVEL dcgmi run level (default is 2)
+ --mem-level=MEM_LEVEL set to 1 to run stream test (default is 0)
 "
 
 ####################################################################################################
@@ -276,7 +277,7 @@ run_dcgm() {
     print_info "Running 2min diagnostic"
     dcgmi diag -r 2 >dcgm-diag-2.log
 
-    if [ "$GPU_LEVEL" -gt 1 ]; then
+    if [ "$GPU_LEVEL" -gt 2 ]; then
         print_info "Running 12min diagnostic"
         dcgmi diag -r 3 >dcgm-diag-3.log
     fi
@@ -317,7 +318,7 @@ run_nvidia_diags() {
 ####################################################################################################
 
 VERBOSE=0
-GPU_LEVEL=1
+GPU_LEVEL=2
 MEM_LEVEL=0
 DISPLAY_HELP=false
 # should be /opt/azurehpc/diagnostics
