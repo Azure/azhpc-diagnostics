@@ -25,7 +25,7 @@
 #   - pkey1.txt
 # - Nvidia GPU
 #   - nvidia-smi.txt (human-readable)
-#   - nvidia-smi-debug.dbg (only Nvidia can read)
+#   - dump.zip (only Nvidia can read)
 #   - dcgm-diag-2.log
 #   - dcgm-diag-3.log
 #   - nvvs.log
@@ -308,9 +308,8 @@ run_nvidia_diags() {
     mkdir -p "$DIAG_DIR/Nvidia"
     print_log "Nvidia VM Detected"
     if command -v nvidia-smi >/dev/null; then
-        nvidia-smi -q \
-            --filename="$DIAG_DIR/Nvidia/nvidia-smi.txt" \
-            --debug="$DIAG_DIR/Nvidia/nvidia-smi-debug.dbg"
+        nvidia-smi -q --filename="$DIAG_DIR/Nvidia/nvidia-smi.txt"
+        nvidia-debugdump --dumpall --file "$DIAG_DIR/Nvidia/dump.zip"
         if is_dcgm_installed; then
             run_dcgm
         fi

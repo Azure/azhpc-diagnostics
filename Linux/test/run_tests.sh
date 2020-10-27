@@ -20,7 +20,7 @@ general.log"
 
 NVIDIA_FILENAMES="Nvidia/
 Nvidia/nvidia-smi.txt
-Nvidia/nvidia-smi-debug.dbg"
+Nvidia/dump.zip"
 
 DCGM_2_FILENAMES="Nvidia/dcgm-diag-2.log"
 DCGM_3_FILENAMES="Nvidia/dcgm-diag-3.log"
