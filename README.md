@@ -33,7 +33,7 @@ This section describes the output of the script and the configuration options av
 | -d | --dir | Directory Name | Specify custom output location | --dir=. | Put the tarball in the current directory |
 | -V | --version |  | display version information and exit | --version | Outputs 0.0.1 |
 | -h | --help |  | display help text | -h | Outputs the help message |
-| -q | --quiet |  | suppress output | --quiet | Suppresses all stdout output |
+| -v | --verbose |  | verbose output | --verbose | Enables more verbose terminal output |
 |  | --gpu-level | 2 (default) or 3 | GPU diagnostics run-level | --gpu-level=3 | Sets dcgmi run-level to 3 |
 |  | --mem-level | 0 (default) or 1 | Memory diagnostics run-level | --mem-level=1 | Enables stream benchmark test |
 
@@ -60,13 +60,14 @@ Note that not all these files will be generated on all runs. What appears below 
 |   -- ibstat.txt
 |   -- ibv_devinfo.txt
 |   -- pkey0.txt
+|   -- pkey1.txt
 |-- Nvidia
     -- nvidia-smi.txt (human-readable)
-    -- nvidia-smi-debug.dbg (only Nvidia can read)
+    -- dump.zip (only Nvidia can read)
     -- dcgm-diag-2.log
     -- dcgm-diag-3.log
     -- nvvs.log
-    -- stats_pcie.json
+    -- stats_*.json
 ```
 
 
@@ -89,7 +90,8 @@ Note that not all these files will be generated on all runs. What appears below 
 | ibstat | ibstat | Infiniband/ibstat.txt | Mellanox OFED command for checking Infiniband status |
 | ibv_devinfo | ibv_devinfo | Infiniband/ibv_devinfo.txt | Mellanox OFED commnd for checking Infiniband Device info |
 | Partition Key | cp /sys/.../pkeys/0 | Infiniband/pkey0.txt | Checks the configured Infinband Partition Key |
-| NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.txt Nvidia/nvidia-smi-debug.dbg | Checks GPU health and configuration |
+| NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.txt | Checks GPU health and configuration |
+| NVIDIA Debug Dump | nvidia-debugbump | Nvidia/dump.zip | Generates a binary blob for use with Nvidia internal engineering tools |
 | NVIDIA Data Center GPU Manager | dcgmi | Nvidia/dcgm-diag-2.log Nvidia/dcgm-diag-3.log Nvidia/nvvs.log Nvidia/stats_*.json | Health monitoring for GPUs in cluster envirmonments
 
 
