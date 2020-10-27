@@ -88,6 +88,7 @@ https://github.com/Azure/azhpc-diagnostics
 
 print_log() {
     echo "$@"
+    echo "$@" >> "$DIAG_DIR/general.log"
 }
 
 print_info() {
@@ -443,8 +444,8 @@ if is_amd_gpu_sku "$VM_SIZE"; then
 fi
 
 tar czf "$DIAG_DIR.tar.gz" -C "$DIAG_DIR_LOC" "$VM_ID.$TIMESTAMP"  2>/dev/null && rm -r "$DIAG_DIR"
-print_log 'Placing diagnostic files in the following location:'
-print_log "$DIAG_DIR.tar.gz"
+echo 'Placing diagnostic files in the following location:'
+echo "$DIAG_DIR.tar.gz"
 
 ####################################################################################################
 # End Main Script

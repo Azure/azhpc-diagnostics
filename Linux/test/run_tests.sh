@@ -15,7 +15,8 @@ VM/ifconfig.txt
 VM/sysctl.txt
 VM/uname.txt
 VM/dmidecode.txt
-VM/syslog"
+VM/syslog
+general.log"
 
 NVIDIA_FILENAMES="Nvidia/
 Nvidia/nvidia-smi.txt
