@@ -22,6 +22,7 @@
 #   - ibstat.txt
 #   - ibv_devinfo.txt
 #   - pkey0.txt
+#   - pkey1.txt
 # - Nvidia GPU
 #   - nvidia-smi.txt (human-readable)
 #   - nvidia-smi-debug.dbg (only Nvidia can read)
@@ -50,8 +51,8 @@ PKG_ROOT="$(dirname $SCRIPT_DIR)"
 
 # Mapping for stream benchmark(AMD only)
 declare -A CPU_LIST
-CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
-          ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
+CPU_LIST=(["HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
+          ["HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
 VERSION_INFO="0.0.1"
 
 HELP_MESSAGE="
@@ -66,11 +67,14 @@ Output control:
 Miscellaneous:
  -V, --version         display version information and exit
  -h, --help            display this help text and exit
- -q, --quiet           suppress output
 
 Execution Mode:
  --gpu-level=GPU_LEVEL dcgmi run level (default is 2)
  --mem-level=MEM_LEVEL set to 1 to run stream test (default is 0)
+
+For more information on this script and the data it gathers, visit its Github:
+
+https://github.com/Azure/azhpc-diagnostics
 "
 
 ####################################################################################################
@@ -83,9 +87,7 @@ Execution Mode:
 
 
 print_log() {
-    if [ "$QUIET" != true ]; then
-        echo "$@"
-    fi
+    echo "$@"
 }
 
 print_info() {
@@ -115,17 +117,23 @@ get_python_command() {
     compgen -c | grep -m 1 '^python[23]$'
 }
 
+
 is_infiniband_sku() {
-    echo "$1" | grep -q '_[HN][^_]*r'
+    echo "$1"| grep -iq '[[:digit:]]\+*r'
 }
 
 is_nvidia_sku() {
-    echo "$1" | grep 'Standard_N' | grep -q -v 'Standard_NV.*_v4'
+    echo "$1" | grep -i '^Standard_N' | grep -iqv '^Standard_NV.*_v4'
 }
 
 is_amd_gpu_sku() {
-    echo "$1" | grep -q 'Standard_NV.*_v4'
+    echo "$1" | grep -iq '^Standard_NV.*_v4'
 }
+
+get_cpu_list() {
+    ${CPU_LIST[$1]}
+}
+
 
 ####################################################################################################
 # End Utility Functions
@@ -142,16 +150,16 @@ run_lsvmbus_resilient() {
     if command -v lsvmbus; then
         lsvmbus -vv
     elif PYTHON=$(get_python_command); then
-        print_info "no lsvmbus installed. pulling script from github"
+        print_log "no lsvmbus installed. pulling script from github"
         LSVMBUS_PATH=$(mktemp)
         if curl -s "$LSVMBUS_URL" > "$LSVMBUS_PATH"; then
             $PYTHON "$LSVMBUS_PATH" -vv
             rm -f "$LSVMBUS_PATH"
         else
-            print_info 'could neither find nor download lsvmbus'
+            print_log 'could neither find nor download lsvmbus'
         fi
     else
-        print_info 'neither lsvmbus nor python detected'
+        print_log 'neither lsvmbus nor python detected'
     fi
 }
 
@@ -197,15 +205,16 @@ run_memory_diags() {
         # run stream tests
         local stream_bin="$DIAG_DIR/Memory/Stream/stream_zen_double"
         if [ -f "$stream_bin" ]; then
-            if [[ ${CPU_LIST[$VM_SIZE]+abc} ]]; then
+            local cpu_list=$(get_cpu_list "$VM_SIZE")
+            if [ ! -z "$cpu_list" ]; then
                 # run stream stuff
-                "$stream_bin" 400000000 "${CPU_LIST[$VM_SIZE]}" > "$DIAG_DIR/Memory/stream.txt"
+                "$stream_bin" 400000000 "$cpu_list" > "$DIAG_DIR/Memory/stream.txt"
             else
-                print_info "Current VM Size is not supported for stream tests"
+                print_log "Current VM Size is not supported for stream tests. skiping"
                 echo "Current VM Size is not supported for stream tests" > "$DIAG_DIR/Memory/stream.txt" 
             fi
         else
-            print_info "failed to unpack stream binary to $stream_bin, unable to run stream memory tests."
+            print_log "failed to unpack stream binary to $stream_bin, unable to run stream memory tests."
         fi
 
         # Clean up
@@ -213,14 +222,14 @@ run_memory_diags() {
         rm "$DIAG_DIR/Memory/._Stream"
         rm "$DIAG_DIR/Memory/stream.tgz"
     else
-        print_info "Unable to download stream memory benchmark"
+        print_log "Unable to download stream memory benchmark"
     fi
 
     
 }
 
 run_infiniband_diags() {
-    print_info "Infiniband VM Detected"
+    print_log "Infiniband VM Detected"
     if command -v ibstat >/dev/null; then
         mkdir -p "$DIAG_DIR/Infiniband"
         ibstat > "$DIAG_DIR/Infiniband/ibstat.txt"
@@ -231,7 +240,7 @@ run_infiniband_diags() {
             echo 'No pkeys found' >"$DIAG_DIR/Infiniband/pkeys0.txt"
         fi
     else
-        print_info "No Infiniband Driver Detected"
+        print_log "No Infiniband Driver Detected"
     fi
 }
 
@@ -257,7 +266,7 @@ run_dcgm() {
     if ! nv_hostengine_out=$(nv-hostengine); then
         # e.g. 'Host engine already running with pid 5555'
         if echo "$nv_hostengine_out" | grep -q 'already running'; then
-            print_info 'nv_hostengine already running, piggybacking'
+            print_log 'nv_hostengine already running, piggybacking'
             nv_hostengine_already_running=true
         else
             return 1
@@ -274,11 +283,11 @@ run_dcgm() {
         nvidia-smi -i "$id" -pm 1 >/dev/null
     done
 
-    print_info "Running 2min diagnostic"
+    print_log "Running 2min diagnostic"
     dcgmi diag -r 2 >dcgm-diag-2.log
 
     if [ "$GPU_LEVEL" -gt 2 ]; then
-        print_info "Running 12min diagnostic"
+        print_log "Running 12min diagnostic"
         dcgmi diag -r 3 >dcgm-diag-3.log
     fi
 
@@ -296,7 +305,7 @@ run_dcgm() {
 
 run_nvidia_diags() {
     mkdir -p "$DIAG_DIR/Nvidia"
-    print_info "Nvidia VM Detected"
+    print_log "Nvidia VM Detected"
     if command -v nvidia-smi >/dev/null; then
         nvidia-smi -q \
             --filename="$DIAG_DIR/Nvidia/nvidia-smi.txt" \
@@ -305,7 +314,7 @@ run_nvidia_diags() {
             run_dcgm
         fi
     else
-        print_info "No Nvidia Driver Detected"
+        print_log "No Nvidia Driver Detected"
     fi
 }
 
@@ -318,14 +327,14 @@ run_nvidia_diags() {
 ####################################################################################################
 
 VERBOSE=0
-GPU_LEVEL=2
+GPU_LEVEL=1
 MEM_LEVEL=0
 DISPLAY_HELP=false
 # should be /opt/azurehpc/diagnostics
 DIAG_DIR_LOC="$SCRIPT_DIR"
 
 # Read in options
-PARSED_OPTIONS=$(getopt -n "$0"  -o d:hqvV --long "dir:,help,gpu-level:,mem-level:,quiet,verbose,version"  -- "$@")
+PARSED_OPTIONS=$(getopt -n "$0"  -o d:hvV --long "dir:,help,gpu-level:,mem-level:,verbose,version"  -- "$@")
 if [ "$?" -ne 0 ]; then
         echo "$HELP_MESSAGE"
         exit 1
@@ -350,7 +359,6 @@ while [ "$1" != "--" ]; do
         validate_run_level "$1"
         MEM_LEVEL="$1"
         ;;
-    -q|--quiet) QUIET=true;;
     -v|--verbose) VERBOSE=$((i+1));;
     -V|--version) DISPLAY_VERSION=true;;
   esac
@@ -379,6 +387,23 @@ fi
 if [ $(whoami) != 'root' ]; then
     failwith 'This script requires root privileges to run. Please run again with sudo'
 fi
+
+echo "Azure HPC Diagnostics Tool"
+echo ""
+echo "NOTICE: This tool gathers various logs and diagnostic information."
+echo "Some of this info, such as IP addresses, may be Personally Identifiable Information."
+echo "It is up to the user to redact any sensitive info from the output if necessary"
+echo "before sending it to Microsoft."
+read -r -p "Please confirm that you understand. [y/N] " response
+case "$response" in
+    [yY][eE][sS]|[yY]) echo "Thank you";;
+    *)
+        echo "No confirmation received"
+        echo "Exiting"
+        exit
+        ;;
+esac
+echo ""
 
 METADATA=$(curl -s -H Metadata:true "$METADATA_URL") || 
     failwith "Couldn't connect to Azure IMDS."

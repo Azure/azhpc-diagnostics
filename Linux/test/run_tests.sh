@@ -75,36 +75,22 @@ nosudo_basic_script_test(){
 }
 
 sudo_basic_script_test(){
-    if [ "$#" -ne 1 ]; then
-        output=$(sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh")
+    if [ "$#" -eq 0 ]; then
+        output=$(yes | sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh")
     else
-        output=$(sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" $1)
+        output=$(yes | sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" $1)
     fi
 
     if [ $? -eq 0 ]; then
-        tarball=$(find . -type f -iname "$VM_ID.*.tar.gz" | sort -r | head -n 1)
+        tarball=$(find . -type f -iname "$VM_ID.*.tar.gz" 2>/dev/null | sort -r | head -n 1)
         filenames=$(tar xzvf "$tarball" | sed 's|^[^/]*/||')
 
         EXPECTED_FILENAMES="$BASE_FILENAMES"
         # If second argument is given then add those files
         if [ "$#" -eq 2 ]; then
             EXPECTED_FILENAMES=$(cat <(echo "$EXPECTED_FILENAMES") <(echo "$2"))
-            echo "$EXPECTED_FILENAMES"
         fi
     
-        # Check the output line count for verbose and quiet arguments
-        if [ "$1" = "-v"  -o "$1" = "--verbose" ]; then
-            if [ $(echo "$output" | wc -l) -le 2 ]; then
-                echo 'FAIL'
-                overall_retcode=1
-            fi
-        elif [ "$1" = "-q" -o "$1" = "--quiet" ]; then
-            if [ $(echo "$output" | wc -l) -gt 1 ]; then
-                echo 'FAIL'
-                overall_retcode=1
-                return 1
-            fi
-        fi
         if ! sort_and_compare "$EXPECTED_FILENAMES" "$filenames"; then
             echo 'FAIL'
             overall_retcode=1
@@ -197,19 +183,12 @@ sudo_basic_script_test -v
 echo 'Testing with --verbose'
 sudo_basic_script_test --verbose
 
-# suppressed output
-echo 'Testing with -q'
-sudo_basic_script_test -q
-
-echo 'Testing with --quiet'
-sudo_basic_script_test --quiet
-
 # raised mem level
 echo 'Testing with --mem-level=1'
-sudo_basic_script_test --mem-level=1 $MEMORY_FILENAMES
+sudo_basic_script_test --mem-level=1 "$MEMORY_FILENAMES"
 
 # raised gpu-level
 echo 'Testing with --gpu-level=3'
-sudo_basic_script_test --gpu-level=2 $DCGM_3_FILENAMES
+sudo_basic_script_test --gpu-level=3 "$DCGM_3_FILENAMES"
 
 exit $overall_retcode
