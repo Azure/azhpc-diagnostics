@@ -238,7 +238,12 @@ run_infiniband_diags() {
         if [ -f /sys/class/infiniband/mlx5_0/ports/pkeys/0 ]; then
             cp /sys/class/infiniband/mlx5_0/ports/pkeys/0 "$DIAG_DIR/Infiniband/pkey0.txt"
         else
-            echo 'No pkeys found' >"$DIAG_DIR/Infiniband/pkeys0.txt"
+            echo 'No pkey found' >"$DIAG_DIR/Infiniband/pkeys0.txt"
+        fi
+        if [ -f /sys/class/infiniband/mlx5_0/ports/pkeys/1 ]; then
+            cp /sys/class/infiniband/mlx5_0/ports/pkeys/1 "$DIAG_DIR/Infiniband/pkey1.txt"
+        else
+            echo 'No pkey found' >"$DIAG_DIR/Infiniband/pkeys1.txt"
         fi
     else
         print_log "No Infiniband Driver Detected"

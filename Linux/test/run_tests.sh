@@ -31,7 +31,8 @@ Memory/stream.txt"
 INFINIBAND_FILENAMES="Infiniband/
 Infiniband/ibstat.txt
 Infiniband/ibv_devinfo.txt
-Infiniband/pkeys0.txt"
+Infiniband/pkeys0.txt
+Infiniband/pkeys1.txt"
 
 sort_and_compare() {
     local a=$(echo "$1" | sort | grep -v 'Nvidia/stats_\|Nvidia/nvvs.log')
