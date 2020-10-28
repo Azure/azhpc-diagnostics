@@ -2,6 +2,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 
+# these make sense as an associative array
+# but hesitant to start using bash4 features
 BASE_FILENAMES="
 CPU/
 CPU/lscpu.txt
@@ -18,9 +20,12 @@ VM/dmidecode.txt
 VM/syslog
 general.log"
 
-NVIDIA_FILENAMES="Nvidia/
-Nvidia/nvidia-smi.txt
+NVIDIA_FILENAMES="Nvidia/nvidia-smi.txt
 Nvidia/dump.zip"
+
+NVIDIA_EXT_FILENAMES="Nvidia/nvidia-vmext-status"
+
+NVIDIA_FOLDER="Nvidia/"
 
 DCGM_2_FILENAMES="Nvidia/dcgm-diag-2.log"
 DCGM_3_FILENAMES="Nvidia/dcgm-diag-3.log"
@@ -28,11 +33,14 @@ DCGM_3_FILENAMES="Nvidia/dcgm-diag-3.log"
 MEMORY_FILENAMES="Memory/
 Memory/stream.txt"
 
-INFINIBAND_FILENAMES="Infiniband/
-Infiniband/ibstat.txt
+INFINIBAND_FILENAMES="Infiniband/ibstat.txt
 Infiniband/ibv_devinfo.txt
 Infiniband/pkeys0.txt
 Infiniband/pkeys1.txt"
+
+INFINIBAND_EXT_FILENAMES="Infiniband/ib-vmext-status"
+
+INFINIBAND_FOLDER="Infiniband/"
 
 sort_and_compare() {
     local a=$(echo "$1" | sort | grep -v 'Nvidia/stats_\|Nvidia/nvvs.log')
@@ -111,7 +119,7 @@ sudo_basic_script_test(){
 
 
 # Read in options
-PARSED_OPTIONS=$(getopt -n "$0" -o '' --long "infiniband,nvidia,no-lsvmbus,dcgm"  -- "$@")
+PARSED_OPTIONS=$(getopt -n "$0" -o '' --long "infiniband,ib-ext,no-lsvmbus,nvidia,nvidia-ext,dcgm"  -- "$@")
 if [ "$?" -ne 0 ]; then
         echo "$HELP_MESSAGE"
         exit 1
@@ -121,7 +129,9 @@ eval set -- "$PARSED_OPTIONS"
 while [ "$1" != "--" ]; do
   case "$1" in
     --infiniband) INFINIBAND_PRESENT=true;;
+    --ib-ext) INFINIBAND_EXT_PRESENT=true;;
     --nvidia) NVIDIA_PRESENT=true;;
+    --nvidia-ext) NVIDIA_EXT_PRESENT=true;;
     --dcgm) DCGM_INSTALLED=true;;
     --no-lsvmbus) NO_LSVMBUS=true;;
   esac
@@ -138,11 +148,27 @@ if [ "$INFINIBAND_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_FILENAMES"))
 fi
 
+if [ "$INFINIBAND_EXT_PRESENT" = true ];then
+    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_EXT_FILENAMES"))
+fi
+
+if [ "$INFINIBAND_EXT_PRESENT" = true -o "$INFINIBAND_PRESENT" = true ];then
+    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_FOLDER"))
+fi
+
+if [ "$NVIDIA_EXT_PRESENT" = true ];then
+    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$NVIDIA_EXT_FILENAMES"))
+fi
+
 if [ "$NVIDIA_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$NVIDIA_FILENAMES"))
     if [ "$DCGM_INSTALLED" = true ];then
         BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$DCGM_2_FILENAMES"))
     fi
+fi
+
+if [ "$NVIDIA_EXT_PRESENT" = true -o "$NVIDIA_PRESENT" = true ];then
+    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$NVIDIA_FOLDER"))
 fi
 
 if [ "$DCGM_INSTALLED" != true ]; then

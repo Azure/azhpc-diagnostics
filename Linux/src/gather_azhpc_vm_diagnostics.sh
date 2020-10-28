@@ -19,11 +19,13 @@
 # - Memory
 #   - stream.txt
 # - Infiniband
+#   - ib-vmext-status
 #   - ibstat.txt
 #   - ibv_devinfo.txt
 #   - pkey0.txt
 #   - pkey1.txt
 # - Nvidia GPU
+#   - nvidia-vmext-status
 #   - nvidia-smi.txt (human-readable)
 #   - dump.zip (only Nvidia can read)
 #   - dcgm-diag-2.log
@@ -231,6 +233,13 @@ run_memory_diags() {
 
 run_infiniband_diags() {
     print_log "Infiniband VM Detected"
+
+    if [ -f /var/log/azure/ib-vmext-status ]; then
+        mkdir -p "$DIAG_DIR/Infiniband"
+        print_log 'Infiniband Driver Extension Detected'
+        cp /var/log/azure/ib-vmext-status "$DIAG_DIR/Infiniband"
+    fi
+
     if command -v ibstat >/dev/null; then
         mkdir -p "$DIAG_DIR/Infiniband"
         ibstat > "$DIAG_DIR/Infiniband/ibstat.txt"
@@ -312,6 +321,12 @@ run_dcgm() {
 run_nvidia_diags() {
     mkdir -p "$DIAG_DIR/Nvidia"
     print_log "Nvidia VM Detected"
+
+    if [ -f /var/log/azure/nvidia-vmext-status ]; then
+        print_log 'Nvidia GPU Driver Extension Detected'
+        cp /var/log/azure/nvidia-vmext-status "$DIAG_DIR/Nvidia"
+    fi
+
     if command -v nvidia-smi >/dev/null; then
         nvidia-smi -q --filename="$DIAG_DIR/Nvidia/nvidia-smi.txt"
         nvidia-debugdump --dumpall --file "$DIAG_DIR/Nvidia/dump.zip"
