@@ -432,6 +432,22 @@ VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"
 VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
 TIMESTAMP=$(date -u +"%F.UTC%H.%M.%S")
 
+# wait for extensions to install
+if is_nvidia_sku "$VM_SIZE"; then
+    find_process() {
+        sudo ps aux | grep -v grep | grep -m1 "$1"
+    }
+    print_log "Checking for running GPU driver extension"
+    if find_process 'nvidia-vmext.sh enable'; then
+        print_log "Found running extension"
+        while find_process 'nvidia-vmext.sh enable'; do 
+            print_log "Waiting for extension to terminate"
+            sleep 5
+        done
+        print_log "Extension terminated!"
+    fi
+fi
+
 DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
 
 rm -r "$DIAG_DIR" 2>/dev/null

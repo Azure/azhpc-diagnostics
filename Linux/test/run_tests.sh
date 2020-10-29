@@ -63,7 +63,7 @@ VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
 # Test Functions
 
 nosudo_basic_script_test(){
-    local output=$(bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" $1)
+    local output=$(bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" $1 | tee /dev/stderr)
     if [ $? -ne 0 ]; then
         echo 'FAIL 1'
         overall_retcode=1
@@ -85,10 +85,11 @@ nosudo_basic_script_test(){
 }
 
 sudo_basic_script_test(){
+    local output
     if [ "$#" -eq 0 ]; then
-        output=$(yes | sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh")
+        output=$(yes | sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" | tee /dev/stderr)
     else
-        output=$(yes | sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" $1)
+        output=$(yes | sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" "$1" | tee /dev/stderr)
     fi
 
     if [ $? -eq 0 ]; then
