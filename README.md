@@ -41,6 +41,7 @@ This section describes the output of the script and the configuration options av
 Note that not all these files will be generated on all runs. What appears below is union of all files that could be generated, which depends on script parameters and VM size:
 ```
 {vm-id}.{timestamp}.tar.gz
+|-- general.log (logs for the tool itself)
 |-- VM
 |   -- dmesg.log
 |   -- metadata.json
@@ -57,11 +58,13 @@ Note that not all these files will be generated on all runs. What appears below 
 |-- Memory
 |   -- stream.txt
 |-- Infiniband
+    -- ib-vmext.log
 |   -- ibstat.txt
 |   -- ibv_devinfo.txt
 |   -- pkey0.txt
 |   -- pkey1.txt
 |-- Nvidia
+    -- nvidia-vmext.log
     -- nvidia-smi.txt (human-readable)
     -- dump.zip (only Nvidia can read)
     -- dcgm-diag-2.log
@@ -89,10 +92,12 @@ Note that not all these files will be generated on all runs. What appears below 
 | stream | stream_zen_double | Memory/stream.txt | The stream benchmark suite (AMD Only) |
 | ibstat | ibstat | Infiniband/ibstat.txt | Mellanox OFED command for checking Infiniband status |
 | ibv_devinfo | ibv_devinfo | Infiniband/ibv_devinfo.txt | Mellanox OFED commnd for checking Infiniband Device info |
-| Partition Key | cp /sys/.../pkeys/0 | Infiniband/pkey0.txt | Checks the configured Infinband Partition Key |
+| Partition Key | cp /sys/.../pkeys/... | Infiniband/pkey0.txt Infiniband/pkey1.txt | Checks the configured Infinband Partition Key |
+| Infiniband Driver Extension Logs | /var/log/azure/ib-vmext-status | Infiniband/ib-vmext-status | Logs from the Infiniband Driver Extension |
 | NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.txt | Checks GPU health and configuration |
 | NVIDIA Debug Dump | nvidia-debugbump | Nvidia/dump.zip | Generates a binary blob for use with Nvidia internal engineering tools |
 | NVIDIA Data Center GPU Manager | dcgmi | Nvidia/dcgm-diag-2.log Nvidia/dcgm-diag-3.log Nvidia/nvvs.log Nvidia/stats_*.json | Health monitoring for GPUs in cluster envirmonments
+| GPU Driver Extension Logs | /var/log/azure/nvidia-vmext-status | Nvidia/nvidia-vmext-status | Logs from the GPU Driver Extension |
 
 
 
