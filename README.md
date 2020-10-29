@@ -21,7 +21,7 @@ If you have special privacy requirements concerning logs leaving your VM, make s
 After cloning this repo, no further installation is required.
 To run the script, run the following command, replacing {repo-root} with the name of this repo's directory on your VM:
 ```
-sudo bash {repo-root}/Linux/src/gather_azhpc_vm_diagnostics.sh --dir=.
+sudo bash {repo-root}/Linux/src/gather_azhpc_vm_diagnostics.sh
 ```
 
 # Usage
