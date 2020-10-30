@@ -446,6 +446,18 @@ if is_nvidia_sku "$VM_SIZE"; then
         done
         print_log "Extension terminated!"
     fi
+    for i in {1..15}; do
+        if nvidia-smi >/dev/null 2>/dev/null; then
+            got_driver=true
+            break
+        else
+            print_log 'Waiting for nvidia-smi to be ready'
+            sleep 1m
+        fi
+    done
+    if [ "$got_driver" != true ]; then
+        print_log 'Timed out waiting from nvidia-smi'
+    fi
 fi
 
 DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
@@ -481,6 +493,9 @@ fi
 tar czf "$DIAG_DIR.tar.gz" -C "$DIAG_DIR_LOC" "$VM_ID.$TIMESTAMP"  2>/dev/null && rm -r "$DIAG_DIR"
 echo 'Placing diagnostic files in the following location:'
 echo "$DIAG_DIR.tar.gz"
+echo 'If you have already opened a support request'
+echo 'You can take the tarball and follow this link to upload it'
+echo 'https://portal.azure.com/#blade/Microsoft_Azure_Support/HelpAndSupportBlade/managesupportrequest'
 
 ####################################################################################################
 # End Main Script
