@@ -249,7 +249,7 @@ run_infiniband_diags() {
         ibstat > "$DIAG_DIR/Infiniband/ibstat.txt"
         ibv_devinfo > "$DIAG_DIR/Infiniband/ibv_devinfo.txt"
 
-        pushd /sys/class/infiniband
+        pushd /sys/class/infiniband >/dev/null
         for device in $(ls); do
             mkdir -p "$DIAG_DIR/Infiniband/$device"
             if [ -f "$device/ports/pkeys/0" ]; then
@@ -263,7 +263,7 @@ run_infiniband_diags() {
                 echo 'No pkey found' >"$DIAG_DIR/Infiniband/$device/pkey1.txt"
             fi
         done
-        popd
+        popd >/dev/null
     else
         print_log "No Infiniband Driver Detected"
     fi

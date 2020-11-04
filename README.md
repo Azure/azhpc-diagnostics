@@ -66,7 +66,7 @@ Note that not all these files will be generated on all runs. What appears below 
 |-- Nvidia
     -- nvidia-vmext.log
     -- nvidia-smi.txt (human-readable)
-    -- dump.zip (only Nvidia can read)
+    -- nvidia-debugdump.zip (only Nvidia can read)
     -- dcgm-diag-2.log
     -- dcgm-diag-3.log
     -- nvvs.log
@@ -95,7 +95,7 @@ Note that not all these files will be generated on all runs. What appears below 
 | Partition Key | cp /sys/.../pkeys/... | Infiniband/pkey0.txt Infiniband/pkey1.txt | Checks the configured Infinband Partition Key |
 | Infiniband Driver Extension Logs | /var/log/azure/ib-vmext-status | Infiniband/ib-vmext-status | Logs from the Infiniband Driver Extension |
 | NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.txt | Checks GPU health and configuration |
-| NVIDIA Debug Dump | nvidia-debugbump | Nvidia/dump.zip | Generates a binary blob for use with Nvidia internal engineering tools |
+| NVIDIA Debug Dump | nvidia-debugbump | Nvidia/nvidia-debugdump.zip | Generates a binary blob for use with Nvidia internal engineering tools |
 | NVIDIA Data Center GPU Manager | dcgmi | Nvidia/dcgm-diag-2.log Nvidia/dcgm-diag-3.log Nvidia/nvvs.log Nvidia/stats_*.json | Health monitoring for GPUs in cluster envirmonments
 | GPU Driver Extension Logs | /var/log/azure/nvidia-vmext-status | Nvidia/nvidia-vmext-status | Logs from the GPU Driver Extension |
 
