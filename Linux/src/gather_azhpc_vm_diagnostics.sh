@@ -27,7 +27,7 @@
 # - Nvidia GPU
 #   - nvidia-vmext-status
 #   - nvidia-smi.txt (human-readable)
-#   - dump.zip (only Nvidia can read)
+#   - nvidia-debugdump.zip (only Nvidia can read)
 #   - dcgm-diag-2.log
 #   - dcgm-diag-3.log
 #   - nvvs.log
@@ -248,16 +248,22 @@ run_infiniband_diags() {
         mkdir -p "$DIAG_DIR/Infiniband"
         ibstat > "$DIAG_DIR/Infiniband/ibstat.txt"
         ibv_devinfo > "$DIAG_DIR/Infiniband/ibv_devinfo.txt"
-        if [ -f /sys/class/infiniband/mlx5_0/ports/pkeys/0 ]; then
-            cp /sys/class/infiniband/mlx5_0/ports/pkeys/0 "$DIAG_DIR/Infiniband/pkey0.txt"
-        else
-            echo 'No pkey found' >"$DIAG_DIR/Infiniband/pkeys0.txt"
-        fi
-        if [ -f /sys/class/infiniband/mlx5_0/ports/pkeys/1 ]; then
-            cp /sys/class/infiniband/mlx5_0/ports/pkeys/1 "$DIAG_DIR/Infiniband/pkey1.txt"
-        else
-            echo 'No pkey found' >"$DIAG_DIR/Infiniband/pkeys1.txt"
-        fi
+
+        pushd /sys/class/infiniband
+        for device in $(ls); do
+            mkdir -p "$DIAG_DIR/Infiniband/$device"
+            if [ -f "$device/ports/pkeys/0" ]; then
+                cp "$device/ports/pkeys/0" "$DIAG_DIR/Infiniband/$device/pkey0.txt"
+            else
+                echo 'No pkey found' >"$DIAG_DIR/Infiniband/$device/pkey0.txt"
+            fi
+            if [ -f "$device/ports/pkeys/1" ]; then
+                cp "$device/ports/pkeys/1" "$DIAG_DIR/Infiniband/$device/pkey1.txt"
+            else
+                echo 'No pkey found' >"$DIAG_DIR/Infiniband/$device/pkey1.txt"
+            fi
+        done
+        popd
     else
         print_log "No Infiniband Driver Detected"
     fi
@@ -324,7 +330,7 @@ run_dcgm() {
 
 run_nvidia_diags() {
     mkdir -p "$DIAG_DIR/Nvidia"
-    print_log "Nvidia VM Detected"
+    print_log "VM with Nvidia GPU Detected"
 
     if [ -f /var/log/azure/nvidia-vmext-status ]; then
         print_log 'Nvidia GPU Driver Extension Detected'
@@ -333,7 +339,7 @@ run_nvidia_diags() {
 
     if command -v nvidia-smi >/dev/null; then
         nvidia-smi -q --filename="$DIAG_DIR/Nvidia/nvidia-smi.txt"
-        nvidia-debugdump --dumpall --file "$DIAG_DIR/Nvidia/dump.zip"
+        nvidia-debugdump --dumpall --file "$DIAG_DIR/Nvidia/nvidia-debugdump.zip"
         if is_dcgm_installed; then
             run_dcgm
         fi
@@ -344,7 +350,6 @@ run_nvidia_diags() {
 
 wait_on_drivers() {
     local VM_SIZE="$1"
-    local got_driver
     if is_nvidia_sku "$VM_SIZE"; then
         find_process() {
             sudo ps aux | grep -v grep | grep -m1 "$1"

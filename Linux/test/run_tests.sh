@@ -21,7 +21,7 @@ VM/syslog
 general.log"
 
 NVIDIA_FILENAMES="Nvidia/nvidia-smi.txt
-Nvidia/dump.zip"
+Nvidia/nvidia-debugdump.zip"
 
 NVIDIA_EXT_FILENAMES="Nvidia/nvidia-vmext-status"
 
@@ -34,9 +34,16 @@ MEMORY_FILENAMES="Memory/
 Memory/stream.txt"
 
 INFINIBAND_FILENAMES="Infiniband/ibstat.txt
-Infiniband/ibv_devinfo.txt
-Infiniband/pkeys0.txt
-Infiniband/pkeys1.txt"
+Infiniband/ibv_devinfo.txt"
+
+pkey_filenames() {
+    local devices="$1"
+    for device in $(echo "$devices" | tr ',' '\n'); do
+    echo "Infiniband/$device/
+Infiniband/$device/pkey0.txt
+Infiniband/$device/pkey1.txt"
+    done
+}
 
 INFINIBAND_EXT_FILENAMES="Infiniband/ib-vmext-status"
 
@@ -120,7 +127,7 @@ sudo_basic_script_test(){
 
 
 # Read in options
-PARSED_OPTIONS=$(getopt -n "$0" -o '' --long "infiniband,ib-ext,no-lsvmbus,nvidia,nvidia-ext,dcgm"  -- "$@")
+PARSED_OPTIONS=$(getopt -n "$0" -o '' --long "infiniband:,ib-ext,no-lsvmbus,nvidia,nvidia-ext,dcgm"  -- "$@")
 if [ "$?" -ne 0 ]; then
         echo "$HELP_MESSAGE"
         exit 1
@@ -129,7 +136,11 @@ eval set -- "$PARSED_OPTIONS"
  
 while [ "$1" != "--" ]; do
   case "$1" in
-    --infiniband) INFINIBAND_PRESENT=true;;
+    --infiniband) 
+        INFINIBAND_PRESENT=true
+        shift
+        IB_DEVICE_LIST="$1"
+        ;;
     --ib-ext) INFINIBAND_EXT_PRESENT=true;;
     --nvidia) NVIDIA_PRESENT=true;;
     --nvidia-ext) NVIDIA_EXT_PRESENT=true;;
@@ -147,6 +158,7 @@ BASE_FILENAMES="$BASE_FILENAMES"
 
 if [ "$INFINIBAND_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_FILENAMES"))
+    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(pkey_filenames "$IB_DEVICE_LIST"))
 fi
 
 if [ "$INFINIBAND_EXT_PRESENT" = true ];then
