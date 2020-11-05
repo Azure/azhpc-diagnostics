@@ -76,31 +76,32 @@ Note that not all these files will be generated on all runs. What appears below 
 
 ## Diagnostic Tools Table
 
-| Tool | Command | Output File(s) | Description |
-| :--- | :-----: | :------------: | :---------: |
-| dmesg | dmesg | VM/dmesg.log | Dump of kernel ring buffer |
-| syslog | syslog | VM/syslog | Dump of system log |
-| Azure IMDS | curl http://169.254.169.254/metadata/...| VM/metadata.json | VM Metadata (ID,Region,OS Image, etc) |
-| Azure VM Agent | cp /var/log/waagent.log | waagent.log | Logs from the Azure VM Agent |
-| lspci | lspci | VM/lspci.txt | Info on installed PCI devices |
-| lsvmbus | lsvmbus | VM/lsvmbus.log | Displays devices attached to the Hyper-V VMBus |
-| ipconfig | ipconfig | VM/ipconfig.txt | Checking TCP/IP configuration |
-| sysctl | sysctl | VM/sysctl.txt | Checking kernel parameters |
-| uname | uname | VM/uname.txt | Checking system information |
-| dmidecode | dmidecode | VM/dmidecode.txt | DMI table dump (info on hardware components) |
-| lscpu | lscpu | CPU/lscpu.txt | Information about the system CPU architecture |
-| stream | stream_zen_double | Memory/stream.txt | The stream benchmark suite (AMD Only) |
-| ibstat | ibstat | Infiniband/ibstat.txt | Mellanox OFED command for checking Infiniband status |
-| ibv_devinfo | ibv_devinfo | Infiniband/ibv_devinfo.txt | Mellanox OFED commnd for checking Infiniband Device info |
+| Tool | Command | Output File(s) | Description | EULA |
+| :--- | :-----: | :------------: | :---------: | :--: |
+| dmesg | dmesg | VM/dmesg.log | Dump of kernel ring buffer | |
+| syslog | syslog | VM/syslog | Dump of system log | |
+| Azure IMDS | curl http://169.254.169.254/metadata/...| VM/metadata.json | VM Metadata (ID,Region,OS Image, etc) | |
+| Azure VM Agent | cp /var/log/waagent.log | waagent.log | Logs from the Azure VM Agent | |
+| lspci | lspci | VM/lspci.txt | Info on installed PCI devices | |
+| lsvmbus | lsvmbus | VM/lsvmbus.log | Displays devices attached to the Hyper-V VMBus | |
+| ipconfig | ipconfig | VM/ipconfig.txt | Checking TCP/IP configuration | |
+| sysctl | sysctl | VM/sysctl.txt | Checking kernel parameters | |
+| uname | uname | VM/uname.txt | Checking system information | |
+| dmidecode | dmidecode | VM/dmidecode.txt | DMI table dump (info on hardware components) | |
+| lscpu | lscpu | CPU/lscpu.txt | Information about the system CPU architecture | |
+| stream | stream_zen_double | Memory/stream.txt | The stream benchmark suite (AMD Only) | [Steam License](http://www.cs.virginia.edu/stream/FTP/Code/LICENSE.txt)
+| ibstat | ibstat | Infiniband/ibstat.txt | Mellanox OFED command for checking Infiniband status | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
+| ibv_devinfo | ibv_devinfo | Infiniband/ibv_devinfo.txt | Mellanox OFED commnd for checking Infiniband Device info | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
 | Partition Key | cp /sys/.../pkeys/... | Infiniband/pkey0.txt Infiniband/pkey1.txt | Checks the configured Infinband Partition Key |
-| Infiniband Driver Extension Logs | /var/log/azure/ib-vmext-status | Infiniband/ib-vmext-status | Logs from the Infiniband Driver Extension |
-| NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.txt | Checks GPU health and configuration |
-| NVIDIA Debug Dump | nvidia-debugbump | Nvidia/nvidia-debugdump.zip | Generates a binary blob for use with Nvidia internal engineering tools |
-| NVIDIA Data Center GPU Manager | dcgmi | Nvidia/dcgm-diag-2.log Nvidia/dcgm-diag-3.log Nvidia/nvvs.log Nvidia/stats_*.json | Health monitoring for GPUs in cluster envirmonments
-| GPU Driver Extension Logs | /var/log/azure/nvidia-vmext-status | Nvidia/nvidia-vmext-status | Logs from the GPU Driver Extension |
+| Infiniband Driver Extension Logs | cp /var/log/azure/ib-vmext-status | Infiniband/ib-vmext-status | Logs from the Infiniband Driver Extension |
+| NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.txt | Checks GPU health and configuration | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
+| NVIDIA Debug Dump | nvidia-debugbump | Nvidia/nvidia-debugdump.zip | Generates a binary blob for use with Nvidia internal engineering tools | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
+| NVIDIA Data Center GPU Manager | dcgmi | Nvidia/dcgm-diag-2.log Nvidia/dcgm-diag-3.log Nvidia/nvvs.log Nvidia/stats_*.json | Health monitoring for GPUs in cluster environments | [DCGM EULA](https://developer.download.nvidia.com/compute/DCGM/docs/EULA.pdf) |
+| GPU Driver Extension Logs | cp /var/log/azure/nvidia-vmext-status | Nvidia/nvidia-vmext-status | Logs from the GPU Driver Extension | |
 
 
-
+# Liability
+As described in the [MIT license](LICENSE.txt), these scripts are provided as-is with no warranty or liability associated with their use.
 
 # Contributing
 

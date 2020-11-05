@@ -459,10 +459,22 @@ fi
 
 echo "Azure HPC Diagnostics Tool"
 echo ""
-echo "NOTICE: This tool gathers various logs and diagnostic information."
+echo "NOTICES:" 
+echo ""
+echo "This tool generates and bundles together various logs and diagnostic information."
+echo "It, however, DOES NOT TRANSMIT any of said data."
+echo "It is left to the user to choose to transmit this data to Microsoft."
+echo ""
 echo "Some of this info, such as IP addresses, may be Personally Identifiable Information."
 echo "It is up to the user to redact any sensitive info from the output if necessary"
 echo "before sending it to Microsoft."
+echo ""
+echo "This is an invasive tool and may impact system functionality"
+echo ""
+echo "This tool invokes various 3rd party tools if they are present on the system"
+echo "Please review them and their EULAs at:"
+echo "https://github.com/Azure/azhpc-diagnostics"
+echo ""
 read -r -p "Please confirm that you understand. [y/N] " response
 case "$response" in
     [yY][eE][sS]|[yY]) echo "Thank you";;
