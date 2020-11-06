@@ -2,6 +2,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 
+# these make sense as an associative array
+# but hesitant to start using bash4 features
 BASE_FILENAMES="
 CPU/
 CPU/lscpu.txt
@@ -15,11 +17,15 @@ VM/ifconfig.txt
 VM/sysctl.txt
 VM/uname.txt
 VM/dmidecode.txt
-VM/syslog"
+VM/syslog
+general.log"
 
-NVIDIA_FILENAMES="Nvidia/
-Nvidia/nvidia-smi.txt
-Nvidia/nvidia-smi-debug.dbg"
+NVIDIA_FILENAMES="Nvidia/nvidia-smi.txt
+Nvidia/nvidia-debugdump.zip"
+
+NVIDIA_EXT_FILENAMES="Nvidia/nvidia-vmext-status"
+
+NVIDIA_FOLDER="Nvidia/"
 
 DCGM_2_FILENAMES="Nvidia/dcgm-diag-2.log"
 DCGM_3_FILENAMES="Nvidia/dcgm-diag-3.log"
@@ -27,10 +33,21 @@ DCGM_3_FILENAMES="Nvidia/dcgm-diag-3.log"
 MEMORY_FILENAMES="Memory/
 Memory/stream.txt"
 
-INFINIBAND_FILENAMES="Infiniband/
-Infiniband/ibstat.txt
-Infiniband/ibv_devinfo.txt
-Infiniband/pkeys0.txt"
+INFINIBAND_FILENAMES="Infiniband/ibstat.txt
+Infiniband/ibv_devinfo.txt"
+
+pkey_filenames() {
+    local devices="$1"
+    for device in $(echo "$devices" | tr ',' '\n'); do
+    echo "Infiniband/$device/
+Infiniband/$device/pkey0.txt
+Infiniband/$device/pkey1.txt"
+    done
+}
+
+INFINIBAND_EXT_FILENAMES="Infiniband/ib-vmext-status"
+
+INFINIBAND_FOLDER="Infiniband/"
 
 sort_and_compare() {
     local a=$(echo "$1" | sort | grep -v 'Nvidia/stats_\|Nvidia/nvvs.log')
@@ -53,7 +70,7 @@ VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
 # Test Functions
 
 nosudo_basic_script_test(){
-    local output=$(bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" $1)
+    local output=$(bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" $1 | tee /dev/stderr)
     if [ $? -ne 0 ]; then
         echo 'FAIL 1'
         overall_retcode=1
@@ -75,36 +92,23 @@ nosudo_basic_script_test(){
 }
 
 sudo_basic_script_test(){
-    if [ "$#" -ne 1 ]; then
-        output=$(sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh")
+    local output
+    if [ "$#" -eq 0 ]; then
+        output=$(yes | sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" | tee /dev/stderr)
     else
-        output=$(sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" $1)
+        output=$(yes | sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" "$1" | tee /dev/stderr)
     fi
 
     if [ $? -eq 0 ]; then
-        tarball=$(find . -type f -iname "$VM_ID.*.tar.gz" | sort -r | head -n 1)
+        tarball=$(find . -type f -iname "$VM_ID.*.tar.gz" 2>/dev/null | sort -r | head -n 1)
         filenames=$(tar xzvf "$tarball" | sed 's|^[^/]*/||')
 
         EXPECTED_FILENAMES="$BASE_FILENAMES"
         # If second argument is given then add those files
         if [ "$#" -eq 2 ]; then
             EXPECTED_FILENAMES=$(cat <(echo "$EXPECTED_FILENAMES") <(echo "$2"))
-            echo "$EXPECTED_FILENAMES"
         fi
     
-        # Check the output line count for verbose and quiet arguments
-        if [ "$1" = "-v"  -o "$1" = "--verbose" ]; then
-            if [ $(echo "$output" | wc -l) -le 2 ]; then
-                echo 'FAIL'
-                overall_retcode=1
-            fi
-        elif [ "$1" = "-q" -o "$1" = "--quiet" ]; then
-            if [ $(echo "$output" | wc -l) -gt 1 ]; then
-                echo 'FAIL'
-                overall_retcode=1
-                return 1
-            fi
-        fi
         if ! sort_and_compare "$EXPECTED_FILENAMES" "$filenames"; then
             echo 'FAIL'
             overall_retcode=1
@@ -123,7 +127,7 @@ sudo_basic_script_test(){
 
 
 # Read in options
-PARSED_OPTIONS=$(getopt -n "$0" -o '' --long "infiniband,nvidia,no-lsvmbus,dcgm"  -- "$@")
+PARSED_OPTIONS=$(getopt -n "$0" -o '' --long "infiniband:,ib-ext,no-lsvmbus,nvidia,nvidia-ext,dcgm"  -- "$@")
 if [ "$?" -ne 0 ]; then
         echo "$HELP_MESSAGE"
         exit 1
@@ -132,8 +136,14 @@ eval set -- "$PARSED_OPTIONS"
  
 while [ "$1" != "--" ]; do
   case "$1" in
-    --infiniband) INFINIBAND_PRESENT=true;;
+    --infiniband) 
+        INFINIBAND_PRESENT=true
+        shift
+        IB_DEVICE_LIST="$1"
+        ;;
+    --ib-ext) INFINIBAND_EXT_PRESENT=true;;
     --nvidia) NVIDIA_PRESENT=true;;
+    --nvidia-ext) NVIDIA_EXT_PRESENT=true;;
     --dcgm) DCGM_INSTALLED=true;;
     --no-lsvmbus) NO_LSVMBUS=true;;
   esac
@@ -148,6 +158,19 @@ BASE_FILENAMES="$BASE_FILENAMES"
 
 if [ "$INFINIBAND_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_FILENAMES"))
+    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(pkey_filenames "$IB_DEVICE_LIST"))
+fi
+
+if [ "$INFINIBAND_EXT_PRESENT" = true ];then
+    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_EXT_FILENAMES"))
+fi
+
+if [ "$INFINIBAND_EXT_PRESENT" = true -o "$INFINIBAND_PRESENT" = true ];then
+    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_FOLDER"))
+fi
+
+if [ "$NVIDIA_EXT_PRESENT" = true ];then
+    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$NVIDIA_EXT_FILENAMES"))
 fi
 
 if [ "$NVIDIA_PRESENT" = true ];then
@@ -155,6 +178,10 @@ if [ "$NVIDIA_PRESENT" = true ];then
     if [ "$DCGM_INSTALLED" = true ];then
         BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$DCGM_2_FILENAMES"))
     fi
+fi
+
+if [ "$NVIDIA_EXT_PRESENT" = true -o "$NVIDIA_PRESENT" = true ];then
+    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$NVIDIA_FOLDER"))
 fi
 
 if [ "$DCGM_INSTALLED" != true ]; then
@@ -197,19 +224,12 @@ sudo_basic_script_test -v
 echo 'Testing with --verbose'
 sudo_basic_script_test --verbose
 
-# suppressed output
-echo 'Testing with -q'
-sudo_basic_script_test -q
-
-echo 'Testing with --quiet'
-sudo_basic_script_test --quiet
-
 # raised mem level
 echo 'Testing with --mem-level=1'
-sudo_basic_script_test --mem-level=1 $MEMORY_FILENAMES
+sudo_basic_script_test --mem-level=1 "$MEMORY_FILENAMES"
 
 # raised gpu-level
 echo 'Testing with --gpu-level=3'
-sudo_basic_script_test --gpu-level=2 $DCGM_3_FILENAMES
+sudo_basic_script_test --gpu-level=3 "$DCGM_3_FILENAMES"
 
 exit $overall_retcode
