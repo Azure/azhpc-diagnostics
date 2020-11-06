@@ -348,43 +348,8 @@ run_nvidia_diags() {
     fi
 }
 
-wait_on_drivers() {
-    local VM_SIZE="$1"
-    if is_nvidia_sku "$VM_SIZE"; then
-        find_process() {
-            sudo ps aux | grep -v grep | grep -m1 "$1"
-        }
-        print_log "Checking for running GPU driver extension"
-        if find_process 'nvidia-vmext.sh enable'; then
-            print_log "Found running extension"
-            if is_vis_sku "$VM_SIZE"; then
-                print_log 'Ongoing GRID Driver installation detected'
-                print_log 'VM will likely reboot before this script terminates'
-                print_log 'Please rerun script after VM reboot'
-            fi
-            while find_process 'nvidia-vmext.sh enable'; do 
-                print_log "Waiting for extension to terminate"
-                sleep 5
-            done
-            print_log "Extension terminated!"
-        fi
-        if command -v nvidia-smi >/dev/null; then
-            for i in {1..15}; do
-                if nvidia-smi >/dev/null 2>/dev/null; then
-                    got_driver=true
-                    break
-                else
-                    print_log 'Waiting for nvidia-smi to be ready'
-                    sleep 1m
-                fi
-            done
-            if [ "$got_driver" != true ]; then
-                print_log 'Timed out waiting for nvidia-smi'
-            fi
-        else
-            print_log 'No nvidia-smi found'
-        fi
-    fi
+is_extension_running() {
+    sudo ps aux | grep -v grep | grep -m1 'nvidia-vmext.sh enable'
 }
 
 ####################################################################################################
@@ -493,8 +458,13 @@ VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"
 VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
 TIMESTAMP=$(date -u +"%F.UTC%H.%M.%S")
 
-# wait for extensions to install
-wait_on_drivers "$VM_SIZE"
+# check for running extension
+if ext_process=$(is_extension_running); then
+    echo 'Detected a VM Extension installation script running in the background'
+    echo 'Please wait for it to finish and retry'
+    echo "Extension pid: $(echo $ext_process | awk '{print $2}')"
+    exit 1
+fi
 
 
 DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
