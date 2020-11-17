@@ -270,7 +270,7 @@ run_infiniband_diags() {
 }
 
 is_dcgm_installed() {
-    command -v nv-hostengine >/dev/null
+    command -v nv-hostengine >/dev/null && command -v dcgmi >/dev/null
 }
 
 reset_gpu_state() {
@@ -287,7 +287,9 @@ run_dcgm() {
     pushd "$DIAG_DIR/Nvidia" >/dev/null
     
     # start hostengine, remember if it was already running
-    if sudo ps aux | grep -v grep | grep -q nv-hostengine; then
+    local discovery_output
+    discovery_output=$(dcgmi discovery -l)
+    if [ "$?" -eq 255 ] || echo "$discovery_output" | grep -iq 'Unable to connect to host engine'; then
         nv_hostengine_already_running=true
     else
         nv_hostengine_already_running=false
