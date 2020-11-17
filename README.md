@@ -17,6 +17,12 @@ If you are reading this, you are likely troubleshooting problems on an Azure HPC
 
 If you have special privacy requirements concerning logs leaving your VM, make sure to open up the tarball and redact any sensitive information before re-tarring it and handing it off to support engineers.
 
+# Warning
+
+This tool is meant for diagnosing inactive systems. It runs benchmarks that stress various system devices such as memory, GPU, and Infiniband. It will cause performance degradation for or otherwise interfere with other active processes that use these resources. It is not advised to use this tool on systems where other jobs are currenlty running.
+
+To stop the tool while it is running, interrupt the process (i.e. ctrl-c) to force it to reset system state and terminate.
+
 # Install and Run
 After cloning this repo, no further installation is required.
 To run the script, run the following command, replacing {repo-root} with the name of this repo's directory on your VM:
@@ -26,6 +32,10 @@ sudo bash {repo-root}/Linux/src/gather_azhpc_vm_diagnostics.sh
 
 # Usage
 This section describes the output of the script and the configuration options available.
+
+
+
+
 ## Options
 
 | Option (Short) | Option (Long) | Parameters | Description | Example | Example Description |
@@ -99,9 +109,6 @@ Note that not all these files will be generated on all runs. What appears below 
 | NVIDIA Data Center GPU Manager | dcgmi | Nvidia/dcgm-diag-2.log Nvidia/dcgm-diag-3.log Nvidia/nvvs.log Nvidia/stats_*.json | Health monitoring for GPUs in cluster environments | [DCGM EULA](https://developer.download.nvidia.com/compute/DCGM/docs/EULA.pdf) |
 | GPU Driver Extension Logs | cp /var/log/azure/nvidia-vmext-status | Nvidia/nvidia-vmext-status | Logs from the GPU Driver Extension | |
 
-
-# Liability
-As described in the [MIT license](LICENSE.txt), these scripts are provided as-is with no warranty or liability associated with their use.
 
 # Contributing
 

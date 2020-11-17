@@ -270,41 +270,42 @@ run_infiniband_diags() {
 }
 
 is_dcgm_installed() {
-    command -v nv-hostengine >/dev/null
+    command -v nv-hostengine >/dev/null && command -v dcgmi >/dev/null
 }
 
-enable_persistence_mode() {
-    local gpu_ids=$(nvidia-smi --list-gpus | awk '{print $2}' | tr -d :)
-    for gpu_id in "$gpu_ids"; do
-        nvidia-smi -i "$gpu_id" -pm 1 >/dev/null
+reset_gpu_state() {
+    for id in $gpus_wout_persistence; do
+        nvidia-smi -i "$id" -pm 0 >/dev/null
     done
+    if [ "$nv_hostengine_already_running" = false ]; then
+        nv-hostengine --term >/dev/null
+    fi
 }
 
 run_dcgm() {
-    local nv_hostengine_out
-    local nv_hostengine_already_running=false
-
     # because dcgmi makes files in working dir
     pushd "$DIAG_DIR/Nvidia" >/dev/null
     
     # start hostengine, remember if it was already running
-    if ! nv_hostengine_out=$(nv-hostengine); then
-        # e.g. 'Host engine already running with pid 5555'
-        if echo "$nv_hostengine_out" | grep -q 'already running'; then
-            print_log 'nv_hostengine already running, piggybacking'
-            nv_hostengine_already_running=true
-        else
-            return 1
-        fi
+    local discovery_output
+    discovery_output=$(dcgmi discovery -l)
+    if [ "$?" -eq 255 ] || echo "$discovery_output" | grep -iq 'Unable to connect to host engine'; then
+        nv_hostengine_already_running=true
+    else
+        nv_hostengine_already_running=false
+    fi
+
+    if [ "$nv_hostengine_already_running" = false ]; then
+        nv-hostengine >/dev/null
     fi
 
     # enable_persistence_mode for all gpus
-    local gpus_wout_persistence=$(dcgmi diag -r 1 | 
+    gpus_wout_persistence=$(dcgmi diag -r 1 | 
         grep -A1 'Persistence Mode.*Fail' | 
         grep -o 'GPU [[:digit:]]\+' | 
         awk '{print $2}'
     )
-    for id in "$gpus_wout_persistence"; do
+    for id in $gpus_wout_persistence; do
         nvidia-smi -i "$id" -pm 1 >/dev/null
     done
 
@@ -318,12 +319,8 @@ run_dcgm() {
 
 
     # reset state to before script ran
-    for id in "$gpus_wout_persistence"; do
-        nvidia-smi -i "$id" -pm 0 >/dev/null
-    done
-    if [ ! "$nv_hostengine_already_running" = true ]; then
-        nv-hostengine --term >/dev/null
-    fi
+    reset_gpu_state
+    
 
     popd >/dev/null
 }
@@ -354,6 +351,25 @@ is_extension_running() {
 
 ####################################################################################################
 # End Helper Functions
+####################################################################################################
+
+####################################################################################################
+# Begin Traps
+####################################################################################################
+
+
+function ctrl_c() {
+        echo "** Aborting Diagnostics"
+        echo "** Resetting system state"
+        reset_gpu_state
+        echo "** Done!"
+        
+        exit
+}
+trap ctrl_c INT
+
+####################################################################################################
+# End Traps
 ####################################################################################################
 
 ####################################################################################################
@@ -434,11 +450,18 @@ echo "Some of this info, such as IP addresses, may be Personally Identifiable In
 echo "It is up to the user to redact any sensitive info from the output if necessary"
 echo "before sending it to Microsoft."
 echo ""
-echo "This is an invasive tool and may impact system functionality"
-echo ""
 echo "This tool invokes various 3rd party tools if they are present on the system"
 echo "Please review them and their EULAs at:"
 echo "https://github.com/Azure/azhpc-diagnostics"
+echo ""
+echo "WARNING: THINK BEFORE YOU RUN THIS"
+echo "This tool runs benchmarks against system resource such as Memory and GPU."
+echo "Expect it to DEGRADE PERFORMANCE for or otherwise INTERFERE WITH"
+echo "any other processes running on this system that use such resources."
+echo "It is advised that you DO NOT RUN THIS TOOL ALONGSIDE ANY OTHER JOBS on"
+echo "the system."
+echo ""
+echo "Interrupt this tool at any time to force it to reset system state and terminate."
 echo ""
 read -r -p "Please confirm that you understand. [y/N] " response
 case "$response" in
