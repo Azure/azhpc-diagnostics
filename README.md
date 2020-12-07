@@ -44,7 +44,7 @@ This section describes the output of the script and the configuration options av
 | -V | --version |  | display version information and exit | --version | Outputs 0.0.1 |
 | -h | --help |  | display help text | -h | Outputs the help message |
 | -v | --verbose |  | verbose output | --verbose | Enables more verbose terminal output |
-|  | --gpu-level | 2 (default) or 3 | GPU diagnostics run-level | --gpu-level=3 | Sets dcgmi run-level to 3 |
+|  | --gpu-level | 1 (default), 2, or 3 | GPU diagnostics run-level | --gpu-level=3 | Sets dcgmi run-level to 3 |
 |  | --mem-level | 0 (default) or 1 | Memory diagnostics run-level | --mem-level=1 | Enables stream benchmark test |
 
 ## Tarball Structure
