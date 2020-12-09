@@ -27,8 +27,7 @@ NVIDIA_EXT_FILENAMES="Nvidia/nvidia-vmext-status"
 
 NVIDIA_FOLDER="Nvidia/"
 
-DCGM_2_FILENAMES="Nvidia/dcgm-diag-2.log"
-DCGM_3_FILENAMES="Nvidia/dcgm-diag-3.log"
+DCGM_FILENAMES="Nvidia/dcgm-diag.log"
 
 MEMORY_FILENAMES="Memory/
 Memory/stream.txt"
@@ -176,7 +175,7 @@ fi
 if [ "$NVIDIA_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$NVIDIA_FILENAMES"))
     if [ "$DCGM_INSTALLED" = true ];then
-        BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$DCGM_2_FILENAMES"))
+        BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$DCGM_FILENAMES"))
     fi
 fi
 
@@ -184,13 +183,7 @@ if [ "$NVIDIA_EXT_PRESENT" = true -o "$NVIDIA_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$NVIDIA_FOLDER"))
 fi
 
-if [ "$DCGM_INSTALLED" != true ]; then
-    DCGM_3_FILENAMES=""
-fi
-
 overall_retcode=0
-
-
 
 # zero-output runs
 echo 'Testing without sudo'
@@ -230,6 +223,6 @@ sudo_basic_script_test --mem-level=1 "$MEMORY_FILENAMES"
 
 # raised gpu-level
 echo 'Testing with --gpu-level=3'
-sudo_basic_script_test --gpu-level=3 "$DCGM_3_FILENAMES"
+sudo_basic_script_test --gpu-level=3
 
 exit $overall_retcode

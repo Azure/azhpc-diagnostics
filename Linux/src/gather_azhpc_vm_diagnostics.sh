@@ -49,7 +49,6 @@ METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
 STREAM_URL='https://azhpcstor.blob.core.windows.net/diagtool-binaries/stream.tgz'
 LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/lsvmbus'
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
-PKG_ROOT="$(dirname $SCRIPT_DIR)"
 
 # Mapping for stream benchmark(AMD only)
 declare -A CPU_LIST
@@ -71,7 +70,7 @@ Miscellaneous:
  -h, --help            display this help text and exit
 
 Execution Mode:
- --gpu-level=GPU_LEVEL dcgmi run level (default is 2)
+ --gpu-level=GPU_LEVEL dcgmi run level (default is 1)
  --mem-level=MEM_LEVEL set to 1 to run stream test (default is 0)
 
 For more information on this script and the data it gathers, visit its Github:
@@ -309,12 +308,25 @@ run_dcgm() {
         nvidia-smi -i "$id" -pm 1 >/dev/null
     done
 
-    print_log "Running 2min diagnostic"
-    dcgmi diag -r 2 >dcgm-diag-2.log
-
-    if [ "$GPU_LEVEL" -gt 2 ]; then
-        print_log "Running 12min diagnostic"
-        dcgmi diag -r 3 >dcgm-diag-3.log
+    case "$GPU_LEVEL" in
+    1)
+        print_log "Running GPU diagnostics Level 1 (~ < 1 min)"
+        timeout 1m dcgmi diag -r 1 >dcgm-diag.log
+        ;;
+    2)
+        print_log "Running GPU diagnostics Level 2 (~ 2 min)"
+        timeout 5m dcgmi diag -r 2 >dcgm-diag.log
+        ;;
+    3)
+        print_log "Running GPU diagnostics Level 3 (~ 12 min)"
+        timeout 20m dcgmi diag -r 3 >dcgm-diag.log
+        ;;
+    *)
+        print_log "Invalid run-level for dcgm"
+        ;;
+    esac
+    if [ $? -eq 124 ]; then
+        print_log "DCGM timed out"
     fi
 
 
