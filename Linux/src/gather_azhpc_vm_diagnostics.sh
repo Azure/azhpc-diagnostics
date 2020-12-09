@@ -310,15 +310,15 @@ run_dcgm() {
 
     case "$GPU_LEVEL" in
     1)
-        print_log "Running <1min diagnostic"
+        print_log "Running GPU diagnostics Level 1 (~ < 1 min)"
         timeout 1m dcgmi diag -r 1 >dcgm-diag.log
         ;;
     2)
-        print_log "Running 2min diagnostic"
+        print_log "Running GPU diagnostics Level 2 (~ 2 min)"
         timeout 5m dcgmi diag -r 2 >dcgm-diag.log
         ;;
     3)
-        print_log "Running 12min diagnostic"
+        print_log "Running GPU diagnostics Level 3 (~ 12 min)"
         timeout 20m dcgmi diag -r 3 >dcgm-diag.log
         ;;
     *)
