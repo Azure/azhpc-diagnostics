@@ -194,10 +194,24 @@ overall_retcode=0
 
 # zero-output runs
 echo 'Testing without sudo'
-output=$(bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh")
-if [ $? -ne 1 ]; then
+if [ "$(whoami)" = root ]; then
+    user=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 8)
+    while compgen -u | grep "$user"; do
+        user=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 8)
+    done
+    useradd --system --no-create-home "$user"
+    output=$(sudo -u "$user" bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh")
+    retcode=$?
+    userdel "$user"
+else
+    output=$(bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh")
+    retcode=$?
+fi
+if [ $retcode -eq 0 ]; then
     echo 'FAIL'
     overall_retcode=1
+else
+    echo 'PASS'
 fi
 
 echo 'Testing with -V'
