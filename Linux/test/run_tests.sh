@@ -39,8 +39,9 @@ pkey_filenames() {
     local devices="$1"
     for device in $(echo "$devices" | tr ',' '\n'); do
     echo "Infiniband/$device/
-Infiniband/$device/pkey0.txt
-Infiniband/$device/pkey1.txt"
+Infiniband/$device/pkeys/
+Infiniband/$device/pkeys/0
+Infiniband/$device/pkeys/1"
     done
 }
 
