@@ -13,7 +13,7 @@
 #   - sysctl.txt
 #   - uname.txt
 #   - dmidecode.txt
-#   - syslog
+#   - journald.txt|syslog|messages
 # - CPU
 #   - lscpu.txt
 # - Memory
@@ -186,10 +186,15 @@ run_vm_diags() {
     sysctl -a --ignore 2>/dev/null >"$DIAG_DIR/VM/sysctl.txt"
     uname -a >"$DIAG_DIR/VM/uname.txt"
     dmidecode >"$DIAG_DIR/VM/dmidecode.txt"
-    if [ -f /var/log/syslog ]; then
-        cp /var/log/syslog "$DIAG_DIR/VM/syslog"
+
+    if command -v journalctl >/dev/null; then
+        journalctl > "$DIAG_DIR/VM/journald.txt"
+    elif [ -f /var/log/syslog ]; then
+            cp /var/log/syslog "$DIAG_DIR/VM"
+    elif [ -f /var/log/messages ]; then
+            cp /var/log/messages "$DIAG_DIR/VM"
     else
-        echo 'No syslogs found' >"$DIAG_DIR/VM/syslog"
+        print_log "No system logs found"
     fi
 }
 

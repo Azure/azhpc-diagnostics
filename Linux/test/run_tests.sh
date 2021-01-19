@@ -17,7 +17,7 @@ VM/ifconfig.txt
 VM/sysctl.txt
 VM/uname.txt
 VM/dmidecode.txt
-VM/syslog
+VM/@(syslog|messages|journald.txt)
 general.log"
 
 NVIDIA_FILENAMES="Nvidia/nvidia-smi.txt
@@ -49,28 +49,14 @@ INFINIBAND_EXT_FILENAMES="Infiniband/ib-vmext-status"
 
 INFINIBAND_FOLDER="Infiniband/"
 
-sort_and_compare() {
-    local a=$(echo "$1" | sort | grep -v 'Nvidia/stats_\|Nvidia/nvvs.log')
-    local b=$(echo "$2" | sort | grep -v 'Nvidia/stats_\|Nvidia/nvvs.log')
-    diff <(echo "$a") <(echo "$b")
-}
-
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 PKG_ROOT="$(dirname $SCRIPT_DIR)"
-#set -x
-
-# Get the VM_ID to determine the test folders
-METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
-
-METADATA=$(curl -s -H Metadata:true "$METADATA_URL") || 
-    failwith "Couldn't connect to Azure IMDS."
-
-VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
+HPC_DIAG="$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh"
 
 # Test Functions
 
 nosudo_basic_script_test(){
-    local output=$(bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" $1 | tee /dev/stderr)
+    local output=$(bash "$HPC_DIAG" $1 | tee /dev/stderr)
     if [ $? -ne 0 ]; then
         echo 'FAIL 1'
         overall_retcode=1
@@ -91,37 +77,63 @@ nosudo_basic_script_test(){
     fi
 }
 
-sudo_basic_script_test(){
+sudo_basic_script_test() {
+    local script_args="$1"
+    local additional_expected="$2"
+
+    local retval=0
+
     local output
-    if [ "$#" -eq 0 ]; then
-        output=$(yes | sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" | tee /dev/stderr)
-    else
-        output=$(yes | sudo bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh" "$1" | tee /dev/stderr)
+    output=$(yes | sudo bash "$HPC_DIAG" "$script_args") || retval=1
+    echo "$output" 1>&2
+
+    local tarball
+    tarball=$(echo "$output" | grep '.tar.gz')
+    if [ ! -s "$tarball" ]; then
+        return 1
     fi
 
-    if [ $? -eq 0 ]; then
-        tarball=$(find . -type f -iname "$VM_ID.*.tar.gz" 2>/dev/null | sort -r | head -n 1)
-        filenames=$(tar xzvf "$tarball" | sed 's|^[^/]*/||')
+    local filenames
+    filenames=$(tar xzvf "$tarball" | sed 's|^[^/]*/||g') || return 1
 
-        EXPECTED_FILENAMES="$BASE_FILENAMES"
-        # If second argument is given then add those files
-        if [ "$#" -eq 2 ]; then
-            EXPECTED_FILENAMES=$(cat <(echo "$EXPECTED_FILENAMES") <(echo "$2"))
-        fi
+    local expected_patterns
+    expected_patterns=$(cat <(echo "$BASE_FILENAMES") <(echo "$additional_expected"))
     
-        if ! sort_and_compare "$EXPECTED_FILENAMES" "$filenames"; then
-            echo 'FAIL'
-            overall_retcode=1
+    
+    pushd "$(basename "$tarball" .tar.gz)" >/dev/null || return 1
+    shopt -s extglob
+    local expected_filenames
+    for pattern in $expected_patterns; do
+        if [ -e "$pattern" ]; then
+            expected_filenames=$(printf '%s\n%s\n' "$expected_filenames" "$pattern")
         else
-            echo 'PASSED'
+            retval=1
+            echo "Could not find unique file for pattern $pattern"
         fi
-        rm -r $(basename "$tarball" .tar.gz)
-    else
-        echo 'FAIL'
-        overall_retcode=1
-    fi
+    done
+    shopt -u extglob
+    popd >/dev/null || exit 1
 
-    rm -f "$tarball"
+    for filename in $filenames; do
+        if [[ "$filename" =~ ^Nvidia/stats_.*$ ]] ||
+           [[ "$filename" =~ ^Nvidia/nvvs.log$ ]]; then
+            continue # leave behavior for these undefined
+        fi
+
+        if ! echo "$expected_filenames" | grep -q "^$filename\$"; then
+            retval=1
+            echo "Found extra file: $filename"
+        fi
+    done
+
+    rm -rf "$tarball" "$(basename "$tarball" .tar.gz)"
+
+    if [ "$retval" -eq 0 ]; then
+        echo 'PASSED'
+    else
+        echo 'FAILED'
+    fi
+    return "$retval"
 }
 
 
@@ -194,11 +206,11 @@ if [ "$(whoami)" = root ]; then
         user=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 8)
     done
     useradd --system --no-create-home "$user"
-    output=$(sudo -u "$user" bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh")
+    output=$(sudo -u "$user" bash "$HPC_DIAG")
     retcode=$?
     userdel "$user"
 else
-    output=$(bash "$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh")
+    output=$(bash "$HPC_DIAG")
     retcode=$?
 fi
 if [ $retcode -eq 0 ]; then
@@ -223,21 +235,21 @@ nosudo_basic_script_test --help
 # base version
 echo 'Testing with sudo'
 echo 'Testing with no options'
-sudo_basic_script_test
+sudo_basic_script_test || overall_retcode=1
 
 # verbose version
 echo 'Testing with -v'
-sudo_basic_script_test -v
+sudo_basic_script_test -v || overall_retcode=1
 
 echo 'Testing with --verbose'
-sudo_basic_script_test --verbose
+sudo_basic_script_test --verbose || overall_retcode=1
 
 # raised mem level
 echo 'Testing with --mem-level=1'
-sudo_basic_script_test --mem-level=1 "$MEMORY_FILENAMES"
+sudo_basic_script_test --mem-level=1 "$MEMORY_FILENAMES" || overall_retcode=1
 
 # raised gpu-level
 echo 'Testing with --gpu-level=3'
-sudo_basic_script_test --gpu-level=3
+sudo_basic_script_test --gpu-level=3 || overall_retcode=1
 
 exit $overall_retcode
