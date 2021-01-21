@@ -258,7 +258,7 @@ run_infiniband_diags() {
             device=$(basename "$dir")
             mkdir -p "$DIAG_DIR/Infiniband/$device/pkeys"
 
-            find "$dir/" -path '*pkeys/[01]' \
+            find "$dir/" -path '*pkeys/*' \
                 -execdir cp {} "$DIAG_DIR/Infiniband/$device/pkeys" \;
 
             for pkeyNum in {0..1}; do
