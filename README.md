@@ -70,11 +70,10 @@ Note that not all these files will be generated on all runs. What appears below 
 |-- Memory
 |   -- stream.txt
 |-- Infiniband
-    -- ib-vmext.log
+|   -- ib-vmext.log
 |   -- ibstat.txt
 |   -- ibv_devinfo.txt
-|   -- pkey0.txt
-|   -- pkey1.txt
+|   -- pkeys/*
 |-- Nvidia
     -- nvidia-vmext.log
     -- nvidia-smi.txt (human-readable)
@@ -105,7 +104,7 @@ Note that not all these files will be generated on all runs. What appears below 
 | stream | stream_zen_double | Memory/stream.txt | The stream benchmark suite (AMD Only) | [Steam License](http://www.cs.virginia.edu/stream/FTP/Code/LICENSE.txt)
 | ibstat | ibstat | Infiniband/ibstat.txt | Mellanox OFED command for checking Infiniband status | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
 | ibv_devinfo | ibv_devinfo | Infiniband/ibv_devinfo.txt | Mellanox OFED commnd for checking Infiniband Device info | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
-| Partition Key | cp /sys/.../pkeys/... | Infiniband/pkey0.txt Infiniband/pkey1.txt | Checks the configured Infinband Partition Key |
+| Partition Key | cp /sys/class/infiniband/.../pkeys/... | Infiniband/.../pkeys/... | Checks the configured Infinband Partition Keys |
 | Infiniband Driver Extension Logs | cp /var/log/azure/ib-vmext-status | Infiniband/ib-vmext-status | Logs from the Infiniband Driver Extension |
 | NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.txt | Checks GPU health and configuration | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
 | NVIDIA Debug Dump | nvidia-debugbump | Nvidia/nvidia-debugdump.zip | Generates a binary blob for use with Nvidia internal engineering tools | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |

@@ -116,7 +116,8 @@ sudo_basic_script_test() {
 
     for filename in $filenames; do
         if [[ "$filename" =~ ^Nvidia/stats_.*$ ]] ||
-           [[ "$filename" =~ ^Nvidia/nvvs.log$ ]]; then
+           [[ "$filename" =~ ^Nvidia/nvvs.log$ ]] ||
+           [[ "$filename" =~ ^Infiniband/.*/pkeys/.* ]]; then
             continue # leave behavior for these undefined
         fi
 
