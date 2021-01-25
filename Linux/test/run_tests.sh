@@ -40,8 +40,7 @@ pkey_filenames() {
     for device in $(echo "$devices" | tr ',' '\n'); do
     echo "Infiniband/$device/
 Infiniband/$device/pkeys/
-Infiniband/$device/pkeys/0
-Infiniband/$device/pkeys/1"
+Infiniband/$device/pkeys/0"
     done
 }
 
@@ -140,8 +139,8 @@ sudo_basic_script_test() {
 
 
 # Read in options
-PARSED_OPTIONS=$(getopt -n "$0" -o '' --long "infiniband:,ib-ext,no-lsvmbus,nvidia,nvidia-ext,dcgm"  -- "$@")
-if [ "$?" -ne 0 ]; then
+options_list='pkeys:,infiniband,ib-ext,no-lsvmbus,nvidia,nvidia-ext,dcgm,stream'
+if ! PARSED_OPTIONS=$(getopt -n "$0" -o '' --long "$options_list"  -- "$@"); then
         echo "$HELP_MESSAGE"
         exit 1
 fi
@@ -149,8 +148,8 @@ eval set -- "$PARSED_OPTIONS"
  
 while [ "$1" != "--" ]; do
   case "$1" in
-    --infiniband) 
-        INFINIBAND_PRESENT=true
+    --infiniband) INFINIBAND_PRESENT=true;;
+    --pkeys) 
         shift
         IB_DEVICE_LIST="$1"
         ;;
@@ -159,6 +158,7 @@ while [ "$1" != "--" ]; do
     --nvidia-ext) NVIDIA_EXT_PRESENT=true;;
     --dcgm) DCGM_INSTALLED=true;;
     --no-lsvmbus) NO_LSVMBUS=true;;
+    --stream) STREAM_ENABLED=true;;
   esac
   shift
 done
@@ -171,6 +171,9 @@ BASE_FILENAMES="$BASE_FILENAMES"
 
 if [ "$INFINIBAND_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_FILENAMES"))
+fi
+
+if [ -n "$IB_DEVICE_LIST" ]; then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(pkey_filenames "$IB_DEVICE_LIST"))
 fi
 
@@ -178,7 +181,9 @@ if [ "$INFINIBAND_EXT_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_EXT_FILENAMES"))
 fi
 
-if [ "$INFINIBAND_EXT_PRESENT" = true -o "$INFINIBAND_PRESENT" = true ];then
+if [ "$INFINIBAND_EXT_PRESENT" = true ] ||
+    [ "$INFINIBAND_PRESENT" = true ] ||
+    [ -n "$IB_DEVICE_LIST" ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_FOLDER"))
 fi
 
@@ -207,18 +212,22 @@ if [ "$(whoami)" = root ]; then
         user=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 8)
     done
     useradd --system --no-create-home "$user"
-    output=$(sudo -u "$user" bash "$HPC_DIAG")
+    tmp=$(mktemp)
+    cp "$HPC_DIAG" "$tmp"
+    chmod 777 "$tmp"
+    output=$(sudo -u "$user" bash "$tmp")
     retcode=$?
+    rm "$tmp"
     userdel "$user"
 else
     output=$(bash "$HPC_DIAG")
     retcode=$?
 fi
 if [ $retcode -eq 0 ]; then
-    echo 'FAIL'
+    echo 'FAILED'
     overall_retcode=1
 else
-    echo 'PASS'
+    echo 'PASSED'
 fi
 
 echo 'Testing with -V'
@@ -247,7 +256,11 @@ sudo_basic_script_test --verbose || overall_retcode=1
 
 # raised mem level
 echo 'Testing with --mem-level=1'
-sudo_basic_script_test --mem-level=1 "$MEMORY_FILENAMES" || overall_retcode=1
+if [ "$STREAM_ENABLED" = true ];then
+    sudo_basic_script_test --mem-level=1 "$MEMORY_FILENAMES" || overall_retcode=1
+else
+    sudo_basic_script_test --mem-level=1 || overall_retcode=1
+fi
 
 # raised gpu-level
 echo 'Testing with --gpu-level=3'

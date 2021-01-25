@@ -9,7 +9,7 @@
 #   - waagent.log
 #   - lspci.txt
 #   - lsvmbus.log
-#   - ipconfig.txt
+#   - ifconfig.txt
 #   - sysctl.txt
 #   - uname.txt
 #   - dmidecode.txt
@@ -22,8 +22,7 @@
 #   - ib-vmext-status
 #   - ibstat.txt
 #   - ibv_devinfo.txt
-#   - pkey0.txt
-#   - pkey1.txt
+#   - pkeys
 # - Nvidia GPU
 #   - nvidia-vmext-status
 #   - nvidia-smi.txt (human-readable)
@@ -52,8 +51,8 @@ SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 
 # Mapping for stream benchmark(AMD only)
 declare -A CPU_LIST
-CPU_LIST=(["HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
-          ["HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
+CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
+          ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
 VERSION_INFO="0.0.1"
 
 HELP_MESSAGE="
@@ -121,7 +120,7 @@ get_python_command() {
 
 
 is_infiniband_sku() {
-    echo "$1"| grep -iq '[[:digit:]]\+*r'
+    echo "$1"| grep -Eiq '[[:digit:]]\+*r'
 }
 
 is_nvidia_sku() {
@@ -137,7 +136,7 @@ is_amd_gpu_sku() {
 }
 
 get_cpu_list() {
-    ${CPU_LIST[$1]}
+    echo ${CPU_LIST[$1]}
 }
 
 
@@ -205,6 +204,13 @@ run_cpu_diags() {
 
 run_memory_diags() {
     local STREAM_PATH="$DIAG_DIR/Memory/stream.tgz"
+    local cpu_list
+    cpu_list=$(get_cpu_list "$VM_SIZE")
+    if [ -z "$cpu_list" ]; then
+        print_log "Current VM Size is not supported for stream tests. skipping"
+        echo "Current VM Size is not supported for stream tests" > "$DIAG_DIR/Memory/stream.txt" 
+        return 1
+    fi
 
     # Stream Memory tests
     mkdir -p "$DIAG_DIR/Memory"
@@ -216,14 +222,7 @@ run_memory_diags() {
         # run stream tests
         local stream_bin="$DIAG_DIR/Memory/Stream/stream_zen_double"
         if [ -f "$stream_bin" ]; then
-            local cpu_list=$(get_cpu_list "$VM_SIZE")
-            if [ ! -z "$cpu_list" ]; then
-                # run stream stuff
-                "$stream_bin" 400000000 "$cpu_list" > "$DIAG_DIR/Memory/stream.txt"
-            else
-                print_log "Current VM Size is not supported for stream tests. skiping"
-                echo "Current VM Size is not supported for stream tests" > "$DIAG_DIR/Memory/stream.txt" 
-            fi
+            "$stream_bin" 400000000 "$cpu_list" > "$DIAG_DIR/Memory/stream.txt"
         else
             print_log "failed to unpack stream binary to $stream_bin, unable to run stream memory tests."
         fi
@@ -252,25 +251,25 @@ run_infiniband_diags() {
         mkdir -p "$DIAG_DIR/Infiniband"
         ibstat > "$DIAG_DIR/Infiniband/ibstat.txt"
         ibv_devinfo > "$DIAG_DIR/Infiniband/ibv_devinfo.txt"
-
-        for dir in /sys/class/infiniband/*; do
-            [ -d "$dir" ] || continue
-            device=$(basename "$dir")
-            mkdir -p "$DIAG_DIR/Infiniband/$device/pkeys"
-
-            find "$dir/" -path '*pkeys/*' \
-                -execdir cp {} "$DIAG_DIR/Infiniband/$device/pkeys" \;
-
-            for pkeyNum in {0..1}; do
-                if ! [ -s "$DIAG_DIR/Infiniband/$device/pkeys/$pkeyNum" ]; then
-                    print_log "Could not find pkey $pkeyNum"
-                fi
-            done
-
-        done
     else
         print_log "No Infiniband Driver Detected"
     fi
+
+    for dir in /sys/class/infiniband/*; do
+        [ -d "$dir" ] || continue
+        device=$(basename "$dir")
+        mkdir -p "$DIAG_DIR/Infiniband/$device/pkeys"
+
+        find "$dir/" -path '*pkeys/*' \
+            -execdir cp {} "$DIAG_DIR/Infiniband/$device/pkeys" \;
+
+        for pkeyNum in {0..1}; do
+            if ! [ -s "$DIAG_DIR/Infiniband/$device/pkeys/$pkeyNum" ]; then
+                print_log "Could not find pkey $pkeyNum"
+            fi
+        done
+
+    done
 }
 
 is_dcgm_installed() {
@@ -366,6 +365,10 @@ is_extension_running() {
     sudo ps aux | grep -v grep | grep -m1 'nvidia-vmext.sh enable'
 }
 
+run_amd_gpu_diags() {
+    print_log "No AMD GPU diagnostics supported at this time."
+}
+
 ####################################################################################################
 # End Helper Functions
 ####################################################################################################
@@ -426,7 +429,7 @@ while [ "$1" != "--" ]; do
         validate_run_level "$1"
         MEM_LEVEL="$1"
         ;;
-    -v|--verbose) VERBOSE=$((i+1));;
+    -v|--verbose) (( VERBOSE++ ));;
     -V|--version) DISPLAY_VERSION=true;;
   esac
   shift
@@ -453,6 +456,14 @@ fi
 
 if [ $(whoami) != 'root' ]; then
     failwith 'This script requires root privileges to run. Please run again with sudo'
+fi
+
+# check for running extension
+if ext_process=$(is_extension_running); then
+    echo 'Detected a VM Extension installation script running in the background'
+    echo 'Please wait for it to finish and retry'
+    echo "Extension pid: $(echo $ext_process | awk '{print $2}')"
+    exit 1
 fi
 
 echo "Azure HPC Diagnostics Tool"
@@ -498,13 +509,6 @@ VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"
 VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
 TIMESTAMP=$(date -u +"%F.UTC%H.%M.%S")
 
-# check for running extension
-if ext_process=$(is_extension_running); then
-    echo 'Detected a VM Extension installation script running in the background'
-    echo 'Please wait for it to finish and retry'
-    echo "Extension pid: $(echo $ext_process | awk '{print $2}')"
-    exit 1
-fi
 
 
 DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
