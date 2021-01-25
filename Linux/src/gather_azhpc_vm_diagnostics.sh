@@ -136,7 +136,7 @@ is_amd_gpu_sku() {
 }
 
 get_cpu_list() {
-    echo ${CPU_LIST[$1]}
+    echo "${CPU_LIST[$1]}"
 }
 
 
@@ -217,7 +217,7 @@ run_memory_diags() {
 
     # Download precompiled stream library
     if curl -s "$STREAM_URL" > "$STREAM_PATH"; then
-        tar xzf $STREAM_PATH -C "$DIAG_DIR/Memory/"
+        tar xzf "$STREAM_PATH" -C "$DIAG_DIR/Memory/"
 
         # run stream tests
         local stream_bin="$DIAG_DIR/Memory/Stream/stream_zen_double"
@@ -287,7 +287,7 @@ reset_gpu_state() {
 
 run_dcgm() {
     # because dcgmi makes files in working dir
-    pushd "$DIAG_DIR/Nvidia" >/dev/null
+    pushd "$DIAG_DIR/Nvidia" >/dev/null || return 1
     
     # start hostengine, remember if it was already running
     local discovery_output
@@ -338,7 +338,7 @@ run_dcgm() {
     reset_gpu_state
     
 
-    popd >/dev/null
+    popd >/dev/null || failwith "Failed to popd back to working directory"
 }
 
 run_nvidia_diags() {
@@ -404,10 +404,10 @@ DISPLAY_HELP=false
 DIAG_DIR_LOC="$SCRIPT_DIR"
 
 # Read in options
-PARSED_OPTIONS=$(getopt -n "$0"  -o d:hvV --long "dir:,help,gpu-level:,mem-level:,verbose,version"  -- "$@")
-if [ "$?" -ne 0 ]; then
-        echo "$HELP_MESSAGE"
-        exit 1
+OPTIONS_LIST='dir:,help,gpu-level:,mem-level:,verbose,version'
+if ! PARSED_OPTIONS=$(getopt -n "$0"  -o d:hvV --long "$OPTIONS_LIST"  -- "$@"); then
+    echo "$HELP_MESSAGE"
+    exit 1
 fi
 eval set -- "$PARSED_OPTIONS"
  
@@ -454,7 +454,7 @@ if [ "$DISPLAY_HELP" = true ]; then
     exit 0
 fi
 
-if [ $(whoami) != 'root' ]; then
+if [ "$(whoami)" != 'root' ]; then
     failwith 'This script requires root privileges to run. Please run again with sudo'
 fi
 
@@ -462,7 +462,7 @@ fi
 if ext_process=$(is_extension_running); then
     echo 'Detected a VM Extension installation script running in the background'
     echo 'Please wait for it to finish and retry'
-    echo "Extension pid: $(echo $ext_process | awk '{print $2}')"
+    echo "Extension pid: $(echo "$ext_process" | awk '{print $2}')"
     exit 1
 fi
 
@@ -508,8 +508,6 @@ METADATA=$(curl -s -H Metadata:true "$METADATA_URL") ||
 VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"')
 VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
 TIMESTAMP=$(date -u +"%F.UTC%H.%M.%S")
-
-
 
 DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
 

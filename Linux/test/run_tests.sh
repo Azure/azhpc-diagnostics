@@ -49,18 +49,18 @@ INFINIBAND_EXT_FILENAMES="Infiniband/ib-vmext-status"
 INFINIBAND_FOLDER="Infiniband/"
 
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
-PKG_ROOT="$(dirname $SCRIPT_DIR)"
+PKG_ROOT="$(dirname "$SCRIPT_DIR")"
 HPC_DIAG="$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh"
 
 # Test Functions
 
 nosudo_basic_script_test(){
-    local output=$(bash "$HPC_DIAG" $1 | tee /dev/stderr)
-    if [ $? -ne 0 ]; then
+    local output
+    if ! output=$(bash "$HPC_DIAG" "$1" | tee /dev/stderr); then
         echo 'FAIL 1'
         overall_retcode=1
-    elif [ "$1" = "-h" -o "$1" = "--help" ]; then
-        if [ $(echo "$output" | wc -l) -le 1 ]; then
+    elif [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+        if [ "$(echo "$output" | wc -l)" -le 1 ]; then
             echo 'FAIL HELP'
             overall_retcode=1
             return 1
@@ -68,7 +68,7 @@ nosudo_basic_script_test(){
             echo 'PASSED'
             return 0
         fi
-    elif [ $(echo "$output" | wc -l) -ne 1 ]; then
+    elif [ "$(echo "$output" | wc -l)" -ne 1 ]; then
         echo 'FAIL 2'
         overall_retcode=1
     else
@@ -198,7 +198,7 @@ if [ "$NVIDIA_PRESENT" = true ];then
     fi
 fi
 
-if [ "$NVIDIA_EXT_PRESENT" = true -o "$NVIDIA_PRESENT" = true ];then
+if [ "$NVIDIA_EXT_PRESENT" = true ] || [ "$NVIDIA_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$NVIDIA_FOLDER"))
 fi
 
