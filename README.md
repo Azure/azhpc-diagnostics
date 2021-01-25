@@ -53,7 +53,7 @@ This section describes the output of the script and the configuration options av
 Note that not all these files will be generated on all runs. What appears below is union of all files that could be generated, which depends on script parameters and VM size:
 ```
 {vm-id}.{timestamp}.tar.gz
-|-- general.log (logs for the tool itself)
+|-- transcript.log (logs for the tool itself)
 |-- VM
 |   -- dmesg.log
 |   -- metadata.json

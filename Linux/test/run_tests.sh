@@ -18,7 +18,7 @@ VM/sysctl.txt
 VM/uname.txt
 VM/dmidecode.txt
 VM/@(syslog|messages|journald.txt)
-general.log"
+transcript.log"
 
 NVIDIA_FILENAMES="Nvidia/nvidia-smi.txt
 Nvidia/nvidia-debugdump.zip"
@@ -87,7 +87,7 @@ sudo_basic_script_test() {
     echo "$output" 1>&2
 
     local tarball
-    tarball=$(echo "$output" | grep '.tar.gz')
+    tarball=$(echo "$output" | grep -o '[^[:space:]]\+.tar.gz')
     if [ ! -s "$tarball" ]; then
         return 1
     fi
@@ -246,13 +246,6 @@ nosudo_basic_script_test --help
 echo 'Testing with sudo'
 echo 'Testing with no options'
 sudo_basic_script_test || overall_retcode=1
-
-# verbose version
-echo 'Testing with -v'
-sudo_basic_script_test -v || overall_retcode=1
-
-echo 'Testing with --verbose'
-sudo_basic_script_test --verbose || overall_retcode=1
 
 # raised mem level
 echo 'Testing with --mem-level=1'
