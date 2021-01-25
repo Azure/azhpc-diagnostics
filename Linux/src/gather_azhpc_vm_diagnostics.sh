@@ -21,7 +21,8 @@
 # - Infiniband
 #   - ib-vmext-status
 #   - ibstat.txt
-#   - ibv_devinfo.txt
+#   - ibv_devinfo.out
+#   - ibv_devinfo.err
 #   - pkeys
 # - Nvidia GPU
 #   - nvidia-vmext-status
@@ -292,7 +293,7 @@ run_infiniband_diags() {
         ibstat > "$DIAG_DIR/Infiniband/ibstat.txt"
 
         print_log -e "\tWriting Infiniband device info to {output}/Infiniband/ibv_devinfo.txt"
-        ibv_devinfo > "$DIAG_DIR/Infiniband/ibv_devinfo.txt"
+        ibv_devinfo > "$DIAG_DIR/Infiniband/ibv_devinfo.txt" 2>&1
     else
         print_log -e "\tNo Infiniband Driver Detected"
     fi
@@ -415,7 +416,33 @@ run_amd_gpu_diags() {
     print_log -e "\tNo AMD GPU diagnostics supported at this time."
 }
 
+check_for_known_firmware_issue() {
+    local diag_dir="$1"
+    local system_logfile
 
+    print_log -e '\tChecking for firmware issue affecting ConnectX-5 cards.'
+    system_logfile=$(find "$diag_dir/VM/" -regex "$diag_dir/VM/\(journald.txt\|syslog\|messages\)")
+    if [ ! -s "$system_logfile" ]; then
+        print_log -e '\tCannot access system logs. Aborting check.'
+        return 1
+    fi
+    local keypattern='INFO Daemon RDMA: waiting for any Infiniband device.*timeout'
+    if grep -q 'No IB devices found' "$diag_dir/Infiniband/ibv_devinfo.txt" &&
+       grep -q "$keypattern" "$system_logfile"; then
+
+       print_log -e '\tDetected an Infiniband failure likely caused by a known firmware issue affecting VMs w/ConnectX-5 adapters'
+       print_log -e '\tMicrosoft received a patch for this issue in January 2021. Please consult with support engineers'
+    else
+        print_log -e '\tNo ConnectX-5 firmware issue detected.'
+    fi
+}
+is_mlx5_0() {
+    local vmsize="$1"
+    [ "$vmsize" = 'Standard_NC24rs_v3' ] ||
+    [ "$vmsize" = 'Standard_NC24rs_v2' ] ||
+    [ "$vmsize" = 'Standard_HC44rs' ] ||
+    [ "$vmsize" = 'Standard_HB60rs' ]
+}
 
 ####################################################################################################
 # End Helper Functions
@@ -650,6 +677,10 @@ if is_infiniband_sku "$VM_SIZE"; then
             print_log -e "\tCould not find pkey $pkeyNum"
         fi
     done
+fi
+
+if is_mlx5_0 "$VM_SIZE"; then
+    check_for_known_firmware_issue "$DIAG_DIR"
 fi
             
 print_log ''
