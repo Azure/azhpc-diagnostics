@@ -603,6 +603,11 @@ DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
 
 rm -r "$DIAG_DIR" 2>/dev/null
 mkdir -p "$DIAG_DIR"
+
+# keep a trace of this execution
+exec 2> "$DIAG_DIR/hpcdiag.err"
+set -x
+
 print_log "Collecting Linux VM Diagnostics"
 run_vm_diags
 
@@ -648,6 +653,8 @@ if is_infiniband_sku "$VM_SIZE"; then
 fi
             
 print_log ''
+
+set +x
 
 print_divider
 print_enclosed 'Placing diagnostic files in the following location:'

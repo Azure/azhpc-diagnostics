@@ -18,7 +18,8 @@ VM/sysctl.txt
 VM/uname.txt
 VM/dmidecode.txt
 VM/@(syslog|messages|journald.txt)
-transcript.log"
+transcript.log
+hpcdiag.err"
 
 NVIDIA_FILENAMES="Nvidia/nvidia-smi.txt
 Nvidia/nvidia-debugdump.zip"

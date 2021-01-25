@@ -54,6 +54,7 @@ Note that not all these files will be generated on all runs. What appears below 
 ```
 {vm-id}.{timestamp}.tar.gz
 |-- transcript.log (logs for the tool itself)
+|-- hpcdiag.err (stderr output from the run, including set -x trace)
 |-- VM
 |   -- dmesg.log
 |   -- metadata.json
