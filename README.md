@@ -53,7 +53,8 @@ This section describes the output of the script and the configuration options av
 Note that not all these files will be generated on all runs. What appears below is union of all files that could be generated, which depends on script parameters and VM size:
 ```
 {vm-id}.{timestamp}.tar.gz
-|-- general.log (logs for the tool itself)
+|-- transcript.log (logs for the tool itself)
+|-- hpcdiag.err (stderr output from the run, including set -x trace)
 |-- VM
 |   -- dmesg.log
 |   -- metadata.json
@@ -101,7 +102,7 @@ Note that not all these files will be generated on all runs. What appears below 
 | uname | uname | VM/uname.txt | Checking system information | |
 | dmidecode | dmidecode | VM/dmidecode.txt | DMI table dump (info on hardware components) | |
 | lscpu | lscpu | CPU/lscpu.txt | Information about the system CPU architecture | |
-| stream | stream_zen_double | Memory/stream.txt | The stream benchmark suite (AMD Only) | [Steam License](http://www.cs.virginia.edu/stream/FTP/Code/LICENSE.txt)
+| stream | stream_zen_double | Memory/stream.txt | The stream benchmark suite (AMD Only) | [Stream License](http://www.cs.virginia.edu/stream/FTP/Code/LICENSE.txt)
 | ibstat | ibstat | Infiniband/ibstat.txt | Mellanox OFED command for checking Infiniband status | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
 | ibv_devinfo | ibv_devinfo | Infiniband/ibv_devinfo.txt | Mellanox OFED commnd for checking Infiniband Device info | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
 | Partition Key | cp /sys/class/infiniband/.../pkeys/... | Infiniband/.../pkeys/... | Checks the configured Infinband Partition Keys |
