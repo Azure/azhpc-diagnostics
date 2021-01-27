@@ -56,7 +56,15 @@ SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-VERSION_INFO="20210124"
+RELEASE_DATE=20210127 # update upon each release
+COMMIT_HASH=$( 
+    (
+        cd "$SCRIPT_DIR" &&
+        git config --get remote.origin.url | grep -q 'Azure/azhpc-diagnostics.git$' &&
+        git rev-parse HEAD 2>/dev/null
+    ) || 
+    echo 'Unknown')
+VERSION_INFO="$RELEASE_DATE-$COMMIT_HASH"
 
 HELP_MESSAGE="
 Usage: $0 [OPTION]
@@ -436,12 +444,11 @@ check_for_known_firmware_issue() {
         print_log -e '\tNo ConnectX-5 firmware issue detected.'
     fi
 }
-is_mlx5_0() {
+is_CX5() {
     local vmsize="$1"
-    [ "$vmsize" = 'Standard_NC24rs_v3' ] ||
-    [ "$vmsize" = 'Standard_NC24rs_v2' ] ||
-    [ "$vmsize" = 'Standard_HC44rs' ] ||
-    [ "$vmsize" = 'Standard_HB60rs' ]
+    echo "$vmsize" | grep -iq 'Standard_HB60rs' ||
+    echo "$vmsize" | grep -iq 'Standard_HC44rs' ||
+    echo "$vmsize" | grep -iq 'Standard_ND40rs_v2'
 }
 
 ####################################################################################################
@@ -679,7 +686,7 @@ if is_infiniband_sku "$VM_SIZE"; then
     done
 fi
 
-if is_mlx5_0 "$VM_SIZE"; then
+if is_CX5 "$VM_SIZE"; then
     check_for_known_firmware_issue "$DIAG_DIR"
 fi
             
