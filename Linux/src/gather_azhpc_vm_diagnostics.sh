@@ -82,6 +82,7 @@ Miscellaneous:
 Execution Mode:
  --gpu-level=GPU_LEVEL dcgmi run level (default is 1)
  --mem-level=MEM_LEVEL set to 1 to run stream test (default is 0)
+ --offline             skips steps that require Internet access
 
 For more information on this script and the data it gathers, visit its Github:
 
@@ -177,23 +178,38 @@ print_divider() {
 # Begin Helper Functions
 ####################################################################################################
 
+validate_options() {
+    if [ "$OFFLINE" = true ] && [ "$MEM_LEVEL" -gt 0 ]; then
+        echo 'Cannot run stream test in offline mode.'
+        return 1
+    else
+        return 0
+    fi
+}
+
 run_lsvmbus_resilient() {
     local LSVMBUS_PATH
     local PYTHON
 
     if command -v lsvmbus; then
         lsvmbus -vv
-    elif PYTHON=$(get_python_command); then
-        print_log -e "\tNo lsvmbus installed; pulling a copy from Github"
-        LSVMBUS_PATH=$(mktemp)
-        if curl -s "$LSVMBUS_URL" > "$LSVMBUS_PATH"; then
-            $PYTHON "$LSVMBUS_PATH" -vv
-            rm -f "$LSVMBUS_PATH"
-        else
-            print_log -e '\tCould neither find nor download lsvmbus'
-        fi
     else
-        print_log -e '\tNeither lsvmbus nor python detected'
+        if ! PYTHON="$(get_python_command)"; then
+            print_log -e '\tNeither lsvmbus nor python detected; skipping'
+            return 1
+        elif [ "$OFFLINE" = true ]; then
+            print_log -e '\tlsvmbus not installed and offline mode enabled; skipping'
+            return 1
+        else 
+            print_log -e "\tNo lsvmbus installed; pulling a copy from Github"
+            LSVMBUS_PATH=$(mktemp)
+            if curl -s "$LSVMBUS_URL" > "$LSVMBUS_PATH"; then
+                $PYTHON "$LSVMBUS_PATH" -vv
+                rm -f "$LSVMBUS_PATH"
+            else
+                print_log -e '\tFailed download lsvmbus; skipping'
+            fi
+        fi
     fi
 }
 
@@ -488,7 +504,7 @@ DIAG_DIR_LOC="$SCRIPT_DIR"
 RUNTIME_OPTIONS=$*
 
 # Read in options
-OPTIONS_LIST='dir:,help,gpu-level:,mem-level:,version'
+OPTIONS_LIST='dir:,help,gpu-level:,mem-level:,offline,version'
 if ! PARSED_OPTIONS=$(getopt -n "$0"  -o d:hV --long "$OPTIONS_LIST"  -- "$@"); then
     echo "$HELP_MESSAGE"
     exit 1
@@ -513,11 +529,17 @@ while [ "$1" != "--" ]; do
         validate_run_level "$1"
         MEM_LEVEL="$1"
         ;;
+    --offline) OFFLINE=true;;
     -V|--version) DISPLAY_VERSION=true;;
   esac
   shift
 done
 shift
+
+if ! validate_options; then
+    echo "Exiting due to invalid configuration"
+    exit 1
+fi
 
 ####################################################################################################
 # End Option Parsing
@@ -540,6 +562,8 @@ fi
 if [ "$(whoami)" != 'root' ]; then
     failwith 'This script requires root privileges to run. Please run again with sudo'
 fi
+
+
 
 # check for running extension
 if ext_process=$(is_extension_running); then
@@ -589,6 +613,8 @@ IMAGE_OFFER=$(echo "$IMAGE_METADATA" | grep -o '"offer":"[^"]*"' | cut -d: -f2 |
 IMAGE_SKU=$(echo "$IMAGE_METADATA" | grep -o '"sku":"[^"]*"' | cut -d: -f2 | tr -d '"')
 IMAGE_VERSION=$(echo "$IMAGE_METADATA" | grep -o '"version":"[^"]*"' | cut -d: -f2 | tr -d '"')
 TIMESTAMP=$(date -u +"%F.UTC%H.%M.%S")
+
+
 
 echo ''
 print_log "Virtual Machine Details:"

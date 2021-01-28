@@ -231,6 +231,9 @@ else
     echo 'PASSED'
 fi
 
+
+
+
 echo 'Testing with -V'
 nosudo_basic_script_test -V
 
@@ -254,6 +257,14 @@ if [ "$STREAM_ENABLED" = true ];then
     sudo_basic_script_test --mem-level=1 "$MEMORY_FILENAMES" || overall_retcode=1
 else
     sudo_basic_script_test --mem-level=1 || overall_retcode=1
+fi
+
+echo 'Testing with invalid arguments'
+if yes | sudo bash "$HPC_DIAG" --mem-level=1 --offline 1>&2; then
+    echo 'FAILED'
+    overall_retcode=1
+else
+    echo 'PASSED'
 fi
 
 # raised gpu-level
