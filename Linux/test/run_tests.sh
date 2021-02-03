@@ -80,6 +80,7 @@ nosudo_basic_script_test(){
 sudo_basic_script_test() {
     local script_args="$1"
     local additional_expected="$2"
+    local additional_unexpected="$3"
 
     local retval=0
 
@@ -97,7 +98,7 @@ sudo_basic_script_test() {
     filenames=$(tar xzvf "$tarball" | sed 's|^[^/]*/||g') || return 1
 
     local expected_patterns
-    expected_patterns=$(cat <(echo "$BASE_FILENAMES") <(echo "$additional_expected"))
+    expected_patterns=$(cat <(echo "$BASE_FILENAMES") <(echo "$additional_expected") <(echo "$additional_unexpected") | sort | uniq -u)
     
     
     pushd "$(basename "$tarball" .tar.gz)" >/dev/null || return 1
@@ -140,7 +141,7 @@ sudo_basic_script_test() {
 
 
 # Read in options
-options_list='pkeys:,infiniband,ib-ext,no-lsvmbus,nvidia,nvidia-ext,dcgm,stream'
+options_list='pkeys:,infiniband,ib-ext,nvidia,nvidia-ext,dcgm,stream'
 if ! PARSED_OPTIONS=$(getopt -n "$0" -o '' --long "$options_list"  -- "$@"); then
         echo "$HELP_MESSAGE"
         exit 1
@@ -158,17 +159,11 @@ while [ "$1" != "--" ]; do
     --nvidia) NVIDIA_PRESENT=true;;
     --nvidia-ext) NVIDIA_EXT_PRESENT=true;;
     --dcgm) DCGM_INSTALLED=true;;
-    --no-lsvmbus) NO_LSVMBUS=true;;
     --stream) STREAM_ENABLED=true;;
   esac
   shift
 done
 shift
-
-if [ "$NO_LSVMBUS" = true ]; then
-    BASE_FILENAMES=$(echo "$BASE_FILENAMES" | grep -v lsvmbus)
-fi
-BASE_FILENAMES="$BASE_FILENAMES"
 
 if [ "$INFINIBAND_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_FILENAMES"))
@@ -250,6 +245,18 @@ nosudo_basic_script_test --help
 echo 'Testing with sudo'
 echo 'Testing with no options'
 sudo_basic_script_test || overall_retcode=1
+
+echo 'Testing without lsvmbus in offline mode'
+tmp=''
+LSVMBUS_PATH=$(command -v lsvmbus)
+if [ -x "$LSVMBUS_PATH" ]; then
+    tmp=$(mktemp)
+    sudo mv "$LSVMBUS_PATH" "$tmp"
+fi
+sudo_basic_script_test --offline '' 'VM/lsvmbus.log' || overall_retcode=1
+if [ -e "$tmp" ]; then
+    sudo mv "$tmp" "$LSVMBUS_PATH"
+fi
 
 # raised mem level
 echo 'Testing with --mem-level=1'

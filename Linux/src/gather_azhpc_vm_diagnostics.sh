@@ -192,7 +192,8 @@ run_lsvmbus_resilient() {
     local PYTHON
 
     if command -v lsvmbus; then
-        lsvmbus -vv
+        print_log -e "\tWriting Hyper-V VMBus device list to {output}/VM/lsvmbus.log"
+        lsvmbus -vv >"$DIAG_DIR/VM/lsvmbus.log"
     else
         if ! PYTHON="$(get_python_command)"; then
             print_log -e '\tNeither lsvmbus nor python detected; skipping'
@@ -204,10 +205,11 @@ run_lsvmbus_resilient() {
             print_log -e "\tNo lsvmbus installed; pulling a copy from Github"
             LSVMBUS_PATH=$(mktemp)
             if curl -s "$LSVMBUS_URL" > "$LSVMBUS_PATH"; then
-                $PYTHON "$LSVMBUS_PATH" -vv
+                print_log -e "\tWriting Hyper-V VMBus device list to {output}/VM/lsvmbus.log"
+                $PYTHON "$LSVMBUS_PATH" -vv >"$DIAG_DIR/VM/lsvmbus.log"
                 rm -f "$LSVMBUS_PATH"
             else
-                print_log -e '\tFailed download lsvmbus; skipping'
+                print_log -e '\tFailed to download lsvmbus; skipping'
             fi
         fi
     fi
@@ -229,8 +231,7 @@ run_vm_diags() {
     print_log -e "\tWriting PCI Device List to {output}/VM/lspci.txt"
     lspci -vv >"$DIAG_DIR/VM/lspci.txt"
 
-    print_log -e "\tWriting Hyper-V VMBus device list to {output}/VM/lsvmbus.log"
-    run_lsvmbus_resilient >"$DIAG_DIR/VM/lsvmbus.log"
+    run_lsvmbus_resilient
 
     print_log -e "\tWriting network interface list to {output}/VM/ifconfig.txt"
     ip -stats -human-readable address >"$DIAG_DIR/VM/ifconfig.txt"
