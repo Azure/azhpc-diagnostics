@@ -258,6 +258,15 @@ if [ -e "$tmp" ]; then
     sudo mv "$tmp" "$LSVMBUS_PATH"
 fi
 
+echo 'Testing with lsvmbus in offline mode'
+if ! command -v lsvmbus >/dev/null; then
+    echo "echo 'mock lsvmbus output...'" | sudo tee /usr/sbin/lsvmbus >/dev/null
+    sudo_basic_script_test --offline
+    sudo rm /usr/sbin/lsvmbus
+else
+    sudo_basic_script_test --offline
+fi
+
 # raised mem level
 echo 'Testing with --mem-level=1'
 if [ "$STREAM_ENABLED" = true ];then
