@@ -48,6 +48,7 @@ This section describes the output of the script and the configuration options av
 | -v | --verbose |  | verbose output | --verbose | Enables more verbose terminal output |
 |  | --gpu-level | 1 (default), 2, or 3 | GPU diagnostics run-level | --gpu-level=3 | Sets dcgmi run-level to 3 |
 |  | --mem-level | 0 (default) or 1 | Memory diagnostics run-level | --mem-level=1 | Enables stream benchmark test |
+|  | --offline |  | Prevents internet access | --offline | Skips stream benchmark and lsvmbus if not installed
 
 ## Tarball Structure
 Note that not all these files will be generated on all runs. What appears below is union of all files that could be generated, which depends on script parameters and VM size:
