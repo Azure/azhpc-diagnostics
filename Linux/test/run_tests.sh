@@ -21,7 +21,8 @@ VM/@(syslog|messages|journald.txt)
 transcript.log
 hpcdiag.err"
 
-NVIDIA_FILENAMES="Nvidia/nvidia-smi.txt
+NVIDIA_FILENAMES="Nvidia/nvidia-bug-report.log.gz
+Nvidia/nvidia-smi.txt
 Nvidia/nvidia-debugdump.zip"
 
 NVIDIA_EXT_FILENAMES="Nvidia/nvidia-vmext-status"

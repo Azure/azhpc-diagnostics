@@ -25,6 +25,7 @@
 #   - ibv_devinfo.err
 #   - pkeys
 # - Nvidia GPU
+#   - nvidia-bug-report.log.gz
 #   - nvidia-vmext-status
 #   - nvidia-smi.txt (human-readable)
 #   - nvidia-debugdump.zip (only Nvidia can read)
@@ -430,6 +431,12 @@ run_nvidia_diags() {
         fi
     else
         print_log -e "\tNo Nvidia Driver Detected"
+    fi
+
+    if command -v nvidia-bug-report.sh >/dev/null; then
+        print_log -e "\tRunning nvidia-bug-report.sh and outputting to {output}/Nvidia/nvidia-bug-report.log.gz"
+        print_log -e "\tIn the event of hardware failure, this log may be shared with Nvidia:"
+        print_log -e "$(nvidia-bug-report.sh --output-file "$DIAG_DIR/Nvidia/nvidia-bug-report.log" | sed 's/^/\t/')"
     fi
 }
 
