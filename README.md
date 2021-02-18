@@ -77,6 +77,7 @@ Note that not all these files will be generated on all runs. What appears below 
 |   -- ibv_devinfo.txt
 |   -- pkeys/*
 |-- Nvidia
+    -- nvidia-bug-report.log.gz
     -- nvidia-vmext.log
     -- nvidia-smi.txt (human-readable)
     -- nvidia-debugdump.zip (only Nvidia can read)
@@ -108,6 +109,7 @@ Note that not all these files will be generated on all runs. What appears below 
 | ibv_devinfo | ibv_devinfo | Infiniband/ibv_devinfo.txt | Mellanox OFED commnd for checking Infiniband Device info | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
 | Partition Key | cp /sys/class/infiniband/.../pkeys/... | Infiniband/.../pkeys/... | Checks the configured Infinband Partition Keys |
 | Infiniband Driver Extension Logs | cp /var/log/azure/ib-vmext-status | Infiniband/ib-vmext-status | Logs from the Infiniband Driver Extension |
+| NVIDIA Bug Report | nvidia-bug-report.sh | Nvidia/nvidia-bug-report.log.gz | A script that Nvidia has customers run when reporting hardware problems. | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
 | NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.txt | Checks GPU health and configuration | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
 | NVIDIA Debug Dump | nvidia-debugbump | Nvidia/nvidia-debugdump.zip | Generates a binary blob for use with Nvidia internal engineering tools | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
 | NVIDIA Data Center GPU Manager | dcgmi | Nvidia/dcgm-diag-2.log Nvidia/dcgm-diag-3.log Nvidia/nvvs.log Nvidia/stats_*.json | Health monitoring for GPUs in cluster environments | [DCGM EULA](https://developer.download.nvidia.com/compute/DCGM/docs/EULA.pdf) |
