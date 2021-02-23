@@ -58,7 +58,7 @@ HPC_DIAG="$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh"
 
 nosudo_basic_script_test(){
     local output
-    if ! output=$(bash "$HPC_DIAG" "$1" | tee /dev/stderr); then
+    if ! output=$(bash "$HPC_DIAG" --no-update "$1" | tee /dev/stderr); then
         echo 'FAIL 1'
         overall_retcode=1
     elif [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
@@ -86,7 +86,7 @@ sudo_basic_script_test() {
     local retval=0
 
     local output
-    output=$(yes | sudo bash "$HPC_DIAG" "$script_args") || retval=1
+    output=$(yes | sudo bash "$HPC_DIAG" --no-update "$script_args") || retval=1
     echo "$output" 1>&2
 
     local tarball
@@ -217,7 +217,7 @@ if [ "$(whoami)" = root ]; then
     rm "$tmp"
     userdel "$user"
 else
-    output=$(bash "$HPC_DIAG")
+    output=$(bash "$HPC_DIAG" --no-update)
     retcode=$?
 fi
 if [ $retcode -eq 0 ]; then
@@ -227,8 +227,21 @@ else
     echo 'PASSED'
 fi
 
+HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Linux/src/gather_azhpc_vm_diagnostics.sh'
+tmp=$(mktemp)
+sed <"$HPC_DIAG" '/VERSION_INFO=/c VERSION_INFO=dummy' >"$tmp"
+echo 'Testing auto-update'
+if [ "$(yes | bash "$tmp" --version)" != "$(yes | bash <(curl -s "$HPC_DIAG_URL") --version)" ]; then
+    echo 'FAILED'
+    overall_retcode=1
+fi
 
-
+sed <"$HPC_DIAG" '/VERSION_INFO=/c VERSION_INFO=dummy' >"$tmp"
+echo 'Testing auto-update disablement'
+if [ "$(yes | bash "$tmp" --version --no-update)" != 'dummy' ]; then
+    echo 'FAILED'
+    overall_retcode=1
+fi
 
 echo 'Testing with -V'
 nosudo_basic_script_test -V
