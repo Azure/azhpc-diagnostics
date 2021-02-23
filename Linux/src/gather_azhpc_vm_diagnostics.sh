@@ -51,13 +51,14 @@ METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
 IMAGE_METADATA_URL='http://169.254.169.254/metadata/instance/compute/storageProfile/imageReference?api-version=2020-06-01'
 STREAM_URL='https://azhpcstor.blob.core.windows.net/diagtool-binaries/stream.tgz'
 LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/lsvmbus'
+HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Linux/src/gather_azhpc_vm_diagnostics.sh'
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 
 # Mapping for stream benchmark(AMD only)
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210205 # update upon each release
+RELEASE_DATE=20210223 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -83,6 +84,7 @@ Miscellaneous:
 Execution Mode:
  --gpu-level=GPU_LEVEL dcgmi run level (default is 1)
  --mem-level=MEM_LEVEL set to 1 to run stream test (default is 0)
+ --no-update           do not prompt for auto-update
  --offline             skips steps that require Internet access
 
 For more information on this script and the data it gathers, visit its Github:
@@ -125,6 +127,19 @@ get_python_command() {
     compgen -c | grep -m 1 '^python[23]$'
 }
 
+prompt() {
+    local message="$1"
+    local response
+    local counter=2
+    while (( counter-- > 0 )); do
+        read -r -p "$message [y/N]" response
+        case "$response" in
+            [yY][eE][sS]|[yY]) return 0;;
+            [nN][oO]|[nN]) return 1;;
+        esac
+    done
+    return 1
+}
 
 is_infiniband_sku() {
     echo "$1"| grep -Eiq '[[:digit:]]\+*r'
@@ -151,6 +166,7 @@ if tput cols >/dev/null 2>/dev/null && (( $(tput cols) < 80 )); then
 else
     COLUMNS=80
 fi
+
 print_enclosed() {
     local line
     while (( "$#" )); do
@@ -166,9 +182,28 @@ print_enclosed() {
         echo "$line #"
     done
 }
+
 print_divider() {
     for _ in $(seq "$COLUMNS"); do echo -n '#'; done
     echo ''
+}
+
+check_for_updates() {
+    local message="You are not running the latest release of this tool. Switch to latest version?"
+
+    local tmpfile
+    tmpfile=$(mktemp)
+    curl -s "$HPC_DIAG_URL" >"$tmpfile" || return 1
+    if ! cmp --silent "$0" "$tmpfile"; then
+        if prompt "$message"; then
+            mv "$tmpfile" "$0"
+            bash "$0" "$RUNTIME_OPTIONS"
+            exit $?
+        else
+            return 0
+        fi
+    fi
+    rm "$tmpfile"
 }
 
 ####################################################################################################
@@ -512,7 +547,7 @@ DIAG_DIR_LOC="$SCRIPT_DIR"
 RUNTIME_OPTIONS=$*
 
 # Read in options
-OPTIONS_LIST='dir:,help,gpu-level:,mem-level:,offline,version'
+OPTIONS_LIST='dir:,help,gpu-level:,mem-level:,no-update,offline,version'
 if ! PARSED_OPTIONS=$(getopt -n "$0"  -o d:hV --long "$OPTIONS_LIST"  -- "$@"); then
     echo "$HELP_MESSAGE"
     exit 1
@@ -537,6 +572,7 @@ while [ "$1" != "--" ]; do
         validate_run_level "$1"
         MEM_LEVEL="$1"
         ;;
+    --no-update) DISABLE_UPDATE=true;;
     --offline) OFFLINE=true;;
     -V|--version) DISPLAY_VERSION=true;;
   esac
@@ -556,6 +592,10 @@ fi
 ####################################################################################################
 # Begin Main Script
 ####################################################################################################
+
+if [ "$OFFLINE" != true ] && [ "$DISABLE_UPDATE" != true ]; then
+    check_for_updates
+fi
 
 if [ "$DISPLAY_VERSION" = true ]; then
     echo "$VERSION_INFO"
@@ -599,15 +639,11 @@ print_enclosed This tool runs benchmarks against system resource such as Memory 
 print_divider
 print_enclosed Interrupt this tool at any 'time' to force it to reset system state and terminate.
 print_divider
-read -r -p "Please confirm that you understand. [y/N] " response
-case "$response" in
-    [yY][eE][sS]|[yY]) echo "";;
-    *)
-        echo "No confirmation received"
-        echo "Exiting"
-        exit
-        ;;
-esac
+if ! prompt "Please confirm that you understand"; then
+    echo "No confirmation received"
+    echo "Exiting"
+    exit
+fi
 
 METADATA=$(curl -s -H Metadata:true "$METADATA_URL") || 
     failwith "Couldn't connect to Azure IMDS."
