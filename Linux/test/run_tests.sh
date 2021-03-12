@@ -212,7 +212,7 @@ if [ "$(whoami)" = root ]; then
     tmp=$(mktemp)
     cp "$HPC_DIAG" "$tmp"
     chmod 777 "$tmp"
-    output=$(sudo -u "$user" bash "$tmp")
+    output=$(sudo -u "$user" bash "$tmp" --no-update)
     retcode=$?
     rm "$tmp"
     userdel "$user"
@@ -228,12 +228,16 @@ else
 fi
 
 HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Linux/src/gather_azhpc_vm_diagnostics.sh'
-tmp=$(mktemp)
-sed <"$HPC_DIAG" '/VERSION_INFO=/c VERSION_INFO=dummy' >"$tmp"
+main=$(mktemp)
+curl -s "$HPC_DIAG_URL" > "$main"
+corrupted=$(mktemp)
+sed <"$HPC_DIAG" '/VERSION_INFO=/c VERSION_INFO=dummy' >"$corrupted"
 echo 'Testing auto-update'
-if [ "$(yes | bash "$tmp" --version)" != "$(bash <(curl -s "$HPC_DIAG_URL") --version)" ]; then
+if [ "$(yes | bash "$corrupted" --version)" != "$(bash "$main" --version)" ]; then
     echo 'FAILED'
     overall_retcode=1
+else
+    echo 'PASSED'
 fi
 
 sed <"$HPC_DIAG" '/VERSION_INFO=/c VERSION_INFO=dummy' >"$tmp"
@@ -241,6 +245,8 @@ echo 'Testing auto-update disablement'
 if [ "$(yes | bash "$tmp" --version --no-update)" != 'dummy' ]; then
     echo 'FAILED'
     overall_retcode=1
+else
+    echo 'PASSED'
 fi
 
 echo 'Testing with -V'
@@ -254,6 +260,12 @@ nosudo_basic_script_test -h
 
 echo 'Testing with --help'
 nosudo_basic_script_test --help
+
+METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
+if ! curl -s -H Metadata:true --connect-timeout 1 "$METADATA_URL"; then 
+    echo "Couldn't connect to Azure IMDS. Cutting tests short."
+    exit 1
+fi
 
 # base version
 echo 'Testing with sudo'
