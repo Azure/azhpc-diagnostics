@@ -469,9 +469,16 @@ run_nvidia_diags() {
     fi
 
     if command -v nvidia-bug-report.sh >/dev/null; then
+        local output
         print_log -e "\tRunning nvidia-bug-report.sh and outputting to {output}/Nvidia/nvidia-bug-report.log.gz"
         print_log -e "\tIn the event of hardware failure, this log may be shared with Nvidia:"
-        print_log -e "$(nvidia-bug-report.sh --output-file "$DIAG_DIR/Nvidia/nvidia-bug-report.log" | sed 's/^/\t/')"
+        output=$(timeout 1m nvidia-bug-report.sh --output-file "$DIAG_DIR/Nvidia/nvidia-bug-report.log" | sed 's/^/\t/')
+        if [ $? -eq 124 ]; then
+            print_log -e "\tnvidia-bug-report.sh timed out. Re-running in safe mode."
+            rm "$DIAG_DIR/Nvidia/nvidia-bug-report.log"
+            output=$(nvidia-bug-report.sh --safe-mode --extra-system-data --output-file "$DIAG_DIR/Nvidia/nvidia-bug-report.log" | sed 's/^/\t/')
+        fi
+        print_log -e "$output"
     fi
 }
 
@@ -593,7 +600,7 @@ fi
 # Begin Main Script
 ####################################################################################################
 
-if [ "$OFFLINE" != true ] && [ "$DISABLE_UPDATE" != true ]; then
+if [ "$OFFLINE" != true ] && [ "$DISABLE_UPDATE" != true ] && ! [[ $- =~ 's' ]]; then
     check_for_updates
 fi
 
