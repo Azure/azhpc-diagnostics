@@ -58,7 +58,7 @@ SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210223 # update upon each release
+RELEASE_DATE=20210316 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -227,7 +227,7 @@ run_lsvmbus_resilient() {
     local LSVMBUS_PATH
     local PYTHON
 
-    if command -v lsvmbus; then
+    if command -v lsvmbus >/dev/null; then
         print_log -e "\tWriting Hyper-V VMBus device list to {output}/VM/lsvmbus.log"
         lsvmbus -vv >"$DIAG_DIR/VM/lsvmbus.log"
     else
@@ -448,14 +448,15 @@ run_dcgm() {
 }
 
 run_nvidia_diags() {
-    mkdir -p "$DIAG_DIR/Nvidia"
 
     if [ -f /var/log/azure/nvidia-vmext-status ]; then
+        mkdir -p "$DIAG_DIR/Nvidia"
         print_log -e "\tCopying Nvidia GPU Driver Extension logs to {output}/Nvidia/nvidia-vmext-status"
         cp /var/log/azure/nvidia-vmext-status "$DIAG_DIR/Nvidia"
     fi
 
     if command -v nvidia-smi >/dev/null; then
+        mkdir -p "$DIAG_DIR/Nvidia"
         print_log -e "\tQuerying Nvidia GPU Info, writing to {output}/Nvidia/nvidia-smi.txt"
         nvidia-smi -q --filename="$DIAG_DIR/Nvidia/nvidia-smi.txt"
 
@@ -469,6 +470,7 @@ run_nvidia_diags() {
     fi
 
     if command -v nvidia-bug-report.sh >/dev/null; then
+        mkdir -p "$DIAG_DIR/Nvidia"
         print_log -e "\tRunning nvidia-bug-report.sh and outputting to {output}/Nvidia/nvidia-bug-report.log.gz"
         print_log -e "\tIn the event of hardware failure, this log may be shared with Nvidia:"
         print_log -e "$(timeout 5m nvidia-bug-report.sh --safe-mode --extra-system-data --output-file "$DIAG_DIR/Nvidia/nvidia-bug-report.log" | sed 's/^/\t/')"
