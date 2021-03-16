@@ -227,7 +227,7 @@ run_lsvmbus_resilient() {
     local LSVMBUS_PATH
     local PYTHON
 
-    if command -v lsvmbus; then
+    if command -v lsvmbus >/dev/null; then
         print_log -e "\tWriting Hyper-V VMBus device list to {output}/VM/lsvmbus.log"
         lsvmbus -vv >"$DIAG_DIR/VM/lsvmbus.log"
     else
