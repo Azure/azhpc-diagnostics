@@ -17,6 +17,7 @@ VM/ifconfig.txt
 VM/sysctl.txt
 VM/uname.txt
 VM/dmidecode.txt
+VM/lsmod.txt
 VM/@(syslog|messages|journald.txt)
 transcript.log
 hpcdiag.err"
