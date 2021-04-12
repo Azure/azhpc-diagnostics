@@ -58,7 +58,7 @@ SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210406 # update upon each release
+RELEASE_DATE=20210412 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -538,6 +538,157 @@ trap ctrl_c INT
 # End Traps
 ####################################################################################################
 
+function main {
+    print_divider
+    print_enclosed Azure HPC Diagnostics Tool
+    print_divider
+    print_enclosed "NOTICES:" 
+    print_divider
+    print_enclosed This tool generates and bundles together various logs and diagnostic information. It, however, DOES NOT TRANSMIT any of said data. It is left to the user to choose to transmit this data to Microsoft.
+    print_divider
+    print_enclosed Some of this info, such as IP addresses, may be Personally Identifiable Information. It is up to the user to redact any sensitive info from the output 'if' necessary before sending it to Microsoft.
+    print_divider
+    print_enclosed This tool invokes various 3rd party tools 'if' they are present on the system Please review them and their EULAs at:
+    print_enclosed "https://github.com/Azure/azhpc-diagnostics"
+    print_divider
+    print_enclosed WARNING: THINK BEFORE YOU RUN THIS
+    print_divider
+    print_enclosed This tool runs benchmarks against system resource such as Memory and GPU. Expect it to DEGRADE PERFORMANCE 'for' or otherwise INTERFERE WITH any other processes running on this system that use such resources. It is advised that you DO NOT RUN THIS TOOL ALONGSIDE ANY OTHER JOBS on the system.
+    print_divider
+    print_enclosed Interrupt this tool at any 'time' to force it to reset system state and terminate.
+    print_divider
+    if ! prompt "Please confirm that you understand"; then
+        echo "No confirmation received"
+        echo "Exiting"
+        exit
+    fi
+
+    METADATA=$(curl -s -H Metadata:true "$METADATA_URL") || 
+        failwith "Couldn't connect to Azure IMDS."
+
+    VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
+
+    IMAGE_METADATA=$(curl -s -H Metadata:true "$IMAGE_METADATA_URL")
+    IMAGE_PUBLISHER=$(echo "$IMAGE_METADATA" | grep -o '"publisher":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    IMAGE_OFFER=$(echo "$IMAGE_METADATA" | grep -o '"offer":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    IMAGE_SKU=$(echo "$IMAGE_METADATA" | grep -o '"sku":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    IMAGE_VERSION=$(echo "$IMAGE_METADATA" | grep -o '"version":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    TIMESTAMP=$(date -u +"%F.UTC%H.%M.%S")
+
+    echo ''
+    print_log "Virtual Machine Details:"
+    print_log -e "\tID: $VM_ID"
+    print_log -e "\tSize: $VM_SIZE"
+    if [ -z "$IMAGE_PUBLISHER" ] ||
+        [ -z "$IMAGE_OFFER" ] ||
+        [ -z "$IMAGE_SKU" ] ||
+        [ -z "$IMAGE_VERSION" ]; then
+        print_log -e "\tUnrecognized (Likely Custom) OS Image"
+    else
+        print_log -e "\tOS Image: $IMAGE_PUBLISHER:$IMAGE_OFFER:$IMAGE_SKU:$IMAGE_VERSION"
+    fi
+    print_log ''
+
+    print_log 'Azure HPC Diagnostics Tool Run Details'
+    print_log -e "\tTool Version: $VERSION_INFO"
+    print_log -e "\tStart Time: $TIMESTAMP"
+    print_log -e "\tRuntime Options:"
+    for option in $RUNTIME_OPTIONS; do
+        print_log -e "\t\t$option"
+    done
+    print_log -e "\tSelected Diagnostic Scenarios:"
+    print_log -e "\t- General VM"
+    print_log -e "\t- CPU"
+
+    if [ "$MEM_LEVEL" -gt 0 ]; then
+        print_log -e "\t- Stream Memory Benchmark"
+    fi
+
+    if is_infiniband_sku "$VM_SIZE"; then
+        print_log -e "\t- Infiniband"
+    fi
+
+    if is_nvidia_sku "$VM_SIZE"; then
+        print_log -e "\t- Nvidia GPU"
+    fi
+
+    if is_amd_gpu_sku "$VM_SIZE"; then
+        print_log -e "\t- AMD GPU"
+    fi
+    print_log ''
+
+    DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
+
+    rm -r "$DIAG_DIR" 2>/dev/null
+    mkdir -p "$DIAG_DIR"
+
+    # keep a trace of this execution
+    exec 2> "$DIAG_DIR/hpcdiag.err"
+    set -x
+
+    print_log "Collecting Linux VM Diagnostics"
+    run_vm_diags
+
+    print_log ''
+    print_log "Collecting CPU Info"
+    run_cpu_diags
+
+    if [ "$MEM_LEVEL" -gt 0 ]; then
+        print_log ''
+        print_log "Running Memory Performance Test"
+        run_memory_diags
+    fi
+
+    if is_infiniband_sku "$VM_SIZE"; then
+        print_log ''
+        print_log "Collecting Infiniband Info"
+        run_infiniband_diags
+    fi
+
+    if is_nvidia_sku "$VM_SIZE"; then
+        print_log ''
+        print_log "Running Nvidia GPU Diagnostics"
+        run_nvidia_diags
+    fi
+
+    if is_amd_gpu_sku "$VM_SIZE"; then
+        print_log ''
+        print_log "Collecting AMD GPU Info"
+        run_amd_gpu_diags
+    fi
+
+    print_log ''
+    print_log "End of Diagnostic Collection"
+    print_log ''
+    print_log "Checking for common issues"
+
+    if is_infiniband_sku "$VM_SIZE"; then
+        for pkeyNum in {0..1}; do
+            if ! [ -s "$DIAG_DIR/Infiniband/$device/pkeys/$pkeyNum" ]; then
+                print_log -e "\tCould not find pkey $pkeyNum"
+            fi
+        done
+    fi
+
+    if is_CX5 "$VM_SIZE"; then
+        check_for_known_firmware_issue "$DIAG_DIR"
+    fi
+                
+    print_log ''
+
+    set +x
+
+    print_divider
+    print_enclosed 'Placing diagnostic files in the following location:'
+    print_enclosed "$DIAG_DIR.tar.gz"
+    print_divider
+    print_enclosed If you have already opened a support request, you can take the tarball and follow this link to upload it:
+    print_enclosed 'https://portal.azure.com/#blade/Microsoft_Azure_Support/HelpAndSupportBlade/managesupportrequest'
+    print_divider
+    tar czf "$DIAG_DIR.tar.gz" -C "$DIAG_DIR_LOC" "$VM_ID.$TIMESTAMP"  2>/dev/null && rm -r "$DIAG_DIR"
+}
+
 ####################################################################################################
 # Begin Option Parsing
 ####################################################################################################
@@ -594,189 +745,25 @@ fi
 # End Option Parsing
 ####################################################################################################
 
-####################################################################################################
-# Begin Main Script
-####################################################################################################
-
 if [ "$OFFLINE" != true ] && [ "$DISABLE_UPDATE" != true ] && ! [[ $- =~ 's' ]]; then
     check_for_updates
 fi
 
-if [ "$DISPLAY_VERSION" = true ]; then
+if [ ! "${BASH_SOURCE[0]}" -ef "$0" ]; then
+    # This lets us load all functions for unit testing.
+    # We wouldn't want people sourcing this script anyway.
+    echo "Script is being sourced. Skipping main execution."
+elif [ "$DISPLAY_VERSION" = true ]; then
     echo "$VERSION_INFO"
-    exit 0
-fi
-
-if [ "$DISPLAY_HELP" = true ]; then
+elif [ "$DISPLAY_HELP" = true ]; then
     echo "$HELP_MESSAGE"
-    exit 0
-fi
-
-if [ "$(whoami)" != 'root' ]; then
+elif [ "$(whoami)" != 'root' ]; then
     failwith 'This script requires root privileges to run. Please run again with sudo'
-fi
-
-
-
-# check for running extension
-if ext_process=$(is_extension_running); then
+elif ext_process=$(is_extension_running); then
     echo 'Detected a VM Extension installation script running in the background'
     echo 'Please wait for it to finish and retry'
     echo "Extension pid: $(echo "$ext_process" | awk '{print $2}')"
     exit 1
-fi
-
-print_divider
-print_enclosed Azure HPC Diagnostics Tool
-print_divider
-print_enclosed "NOTICES:" 
-print_divider
-print_enclosed This tool generates and bundles together various logs and diagnostic information. It, however, DOES NOT TRANSMIT any of said data. It is left to the user to choose to transmit this data to Microsoft.
-print_divider
-print_enclosed Some of this info, such as IP addresses, may be Personally Identifiable Information. It is up to the user to redact any sensitive info from the output 'if' necessary before sending it to Microsoft.
-print_divider
-print_enclosed This tool invokes various 3rd party tools 'if' they are present on the system Please review them and their EULAs at:
-print_enclosed "https://github.com/Azure/azhpc-diagnostics"
-print_divider
-print_enclosed WARNING: THINK BEFORE YOU RUN THIS
-print_divider
-print_enclosed This tool runs benchmarks against system resource such as Memory and GPU. Expect it to DEGRADE PERFORMANCE 'for' or otherwise INTERFERE WITH any other processes running on this system that use such resources. It is advised that you DO NOT RUN THIS TOOL ALONGSIDE ANY OTHER JOBS on the system.
-print_divider
-print_enclosed Interrupt this tool at any 'time' to force it to reset system state and terminate.
-print_divider
-if ! prompt "Please confirm that you understand"; then
-    echo "No confirmation received"
-    echo "Exiting"
-    exit
-fi
-
-METADATA=$(curl -s -H Metadata:true "$METADATA_URL") || 
-    failwith "Couldn't connect to Azure IMDS."
-
-VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"')
-VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
-
-IMAGE_METADATA=$(curl -s -H Metadata:true "$IMAGE_METADATA_URL")
-IMAGE_PUBLISHER=$(echo "$IMAGE_METADATA" | grep -o '"publisher":"[^"]*"' | cut -d: -f2 | tr -d '"')
-IMAGE_OFFER=$(echo "$IMAGE_METADATA" | grep -o '"offer":"[^"]*"' | cut -d: -f2 | tr -d '"')
-IMAGE_SKU=$(echo "$IMAGE_METADATA" | grep -o '"sku":"[^"]*"' | cut -d: -f2 | tr -d '"')
-IMAGE_VERSION=$(echo "$IMAGE_METADATA" | grep -o '"version":"[^"]*"' | cut -d: -f2 | tr -d '"')
-TIMESTAMP=$(date -u +"%F.UTC%H.%M.%S")
-
-
-
-echo ''
-print_log "Virtual Machine Details:"
-print_log -e "\tID: $VM_ID"
-print_log -e "\tSize: $VM_SIZE"
-if [ -z "$IMAGE_PUBLISHER" ] ||
-    [ -z "$IMAGE_OFFER" ] ||
-    [ -z "$IMAGE_SKU" ] ||
-    [ -z "$IMAGE_VERSION" ]; then
-    print_log -e "\tUnrecognized (Likely Custom) OS Image"
 else
-    print_log -e "\tOS Image: $IMAGE_PUBLISHER:$IMAGE_OFFER:$IMAGE_SKU:$IMAGE_VERSION"
+    main
 fi
-print_log ''
-
-print_log 'Azure HPC Diagnostics Tool Run Details'
-print_log -e "\tTool Version: $VERSION_INFO"
-print_log -e "\tStart Time: $TIMESTAMP"
-print_log -e "\tRuntime Options:"
-for option in $RUNTIME_OPTIONS; do
-    print_log -e "\t\t$option"
-done
-print_log -e "\tSelected Diagnostic Scenarios:"
-print_log -e "\t- General VM"
-print_log -e "\t- CPU"
-
-if [ "$MEM_LEVEL" -gt 0 ]; then
-    print_log -e "\t- Stream Memory Benchmark"
-fi
-
-if is_infiniband_sku "$VM_SIZE"; then
-    print_log -e "\t- Infiniband"
-fi
-
-if is_nvidia_sku "$VM_SIZE"; then
-    print_log -e "\t- Nvidia GPU"
-fi
-
-if is_amd_gpu_sku "$VM_SIZE"; then
-    print_log -e "\t- AMD GPU"
-fi
-print_log ''
-
-
-DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
-
-rm -r "$DIAG_DIR" 2>/dev/null
-mkdir -p "$DIAG_DIR"
-
-# keep a trace of this execution
-exec 2> "$DIAG_DIR/hpcdiag.err"
-set -x
-
-print_log "Collecting Linux VM Diagnostics"
-run_vm_diags
-
-print_log ''
-print_log "Collecting CPU Info"
-run_cpu_diags
-
-if [ "$MEM_LEVEL" -gt 0 ]; then
-    print_log ''
-    print_log "Running Memory Performance Test"
-    run_memory_diags
-fi
-
-if is_infiniband_sku "$VM_SIZE"; then
-    print_log ''
-    print_log "Collecting Infiniband Info"
-    run_infiniband_diags
-fi
-
-if is_nvidia_sku "$VM_SIZE"; then
-    print_log ''
-    print_log "Running Nvidia GPU Diagnostics"
-    run_nvidia_diags
-fi
-
-if is_amd_gpu_sku "$VM_SIZE"; then
-    print_log ''
-    print_log "Collecting AMD GPU Info"
-    run_amd_gpu_diags
-fi
-
-print_log ''
-print_log "End of Diagnostic Collection"
-print_log ''
-print_log "Checking for common issues"
-
-if is_infiniband_sku "$VM_SIZE"; then
-    for pkeyNum in {0..1}; do
-        if ! [ -s "$DIAG_DIR/Infiniband/$device/pkeys/$pkeyNum" ]; then
-            print_log -e "\tCould not find pkey $pkeyNum"
-        fi
-    done
-fi
-
-if is_CX5 "$VM_SIZE"; then
-    check_for_known_firmware_issue "$DIAG_DIR"
-fi
-            
-print_log ''
-
-set +x
-
-print_divider
-print_enclosed 'Placing diagnostic files in the following location:'
-print_enclosed "$DIAG_DIR.tar.gz"
-print_divider
-print_enclosed If you have already opened a support request, you can take the tarball and follow this link to upload it:
-print_enclosed 'https://portal.azure.com/#blade/Microsoft_Azure_Support/HelpAndSupportBlade/managesupportrequest'
-print_divider
-tar czf "$DIAG_DIR.tar.gz" -C "$DIAG_DIR_LOC" "$VM_ID.$TIMESTAMP"  2>/dev/null && rm -r "$DIAG_DIR"
-####################################################################################################
-# End Main Script
-####################################################################################################
