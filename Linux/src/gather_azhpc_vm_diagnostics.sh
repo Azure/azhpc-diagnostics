@@ -53,12 +53,13 @@ STREAM_URL='https://azhpcstor.blob.core.windows.net/diagtool-binaries/stream.tgz
 LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/lsvmbus'
 HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Linux/src/gather_azhpc_vm_diagnostics.sh'
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+DEVICES_PATH="/sys/bus/vmbus/devices" # store as a variable so it is mockable
 
 # Mapping for stream benchmark(AMD only)
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210412 # update upon each release
+RELEASE_DATE=20210413 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -461,7 +462,7 @@ run_nvidia_diags() {
     if command -v nvidia-smi >/dev/null; then
         mkdir -p "$DIAG_DIR/Nvidia"
         print_log -e "\tQuerying Nvidia GPU Info, writing to {output}/Nvidia/nvidia-smi.txt"
-        nvidia-smi -q --filename="$DIAG_DIR/Nvidia/nvidia-smi.txt"
+        timeout 1m nvidia-smi -q >"$DIAG_DIR/Nvidia/nvidia-smi.txt" 2>"$DIAG_DIR/Nvidia/nvidia-smi.txt"
 
         print_log -e "\tDumping Nvidia GPU internal state to {output}/Nvidia/nvidia-debugdump.zip"
         nvidia-debugdump --dumpall --file "$DIAG_DIR/Nvidia/nvidia-debugdump.zip"
@@ -513,6 +514,48 @@ is_CX5() {
     echo "$vmsize" | grep -iq 'Standard_HB60rs' ||
     echo "$vmsize" | grep -iq 'Standard_HC44rs' ||
     echo "$vmsize" | grep -iq 'Standard_ND40rs_v2'
+}
+
+function report_bad_gpu {
+    local i="$1"
+    local reason="$2"
+    local pci_domain
+    pci_domain=$(nvidia-smi --query-gpu=pci.domain -i "$i" --format=csv,noheader)
+    local serial
+    serial=$(nvidia-smi --query-gpu=serial -i "$i" --format=csv,noheader)
+
+    local device
+    device=$(find -L "$DEVICES_PATH" -maxdepth 2 -mindepth 2 -iname "*${pci_domain#0x}*")
+    local bus_id
+    bus_id=$(basename "$(dirname "$device")")
+    print_log -e "\tbad gpu ($reason) with bus Id $bus_id and serial number $serial"
+}
+
+function check_page_retirement {
+    local i=0
+    nvidia-smi --query-gpu=retired_pages.sbe,retired_pages.dbe --format=csv,noheader |
+    sed 's/, /\t/g' |
+    while read -r sbe dbe; do 
+        local retired_page_count=$(( sbe + dbe ))
+        if (( retired_page_count >= 60 )); then
+            report_bad_gpu "$i" "DBE($retired_page_count)"
+        fi
+        ((i++))
+    done
+}
+
+function check_inforom {
+    # e.g. WARNING: infoROM is corrupted at gpu 15B5:00:00.0
+    local keywords='WARNING: infoROM is corrupted at gpu'
+
+    grep "$keywords" < "$DIAG_DIR/Nvidia/nvidia-smi.txt" | while IFS= read -r warning; do
+        local pci_domain
+        pci_domain=$(echo "$warning" | awk '{print $NF}' | awk -F: '{print $1}')
+        local i
+        i=$(nvidia-smi --query-gpu=pci.domain --format=csv,noheader | awk "/$pci_domain/{print FNR}")
+        ((i--)) # change to 0-index
+        report_bad_gpu "$i" "infoROM Corrupted"
+    done
 }
 
 ####################################################################################################
