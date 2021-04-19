@@ -2,6 +2,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 
+SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+PKG_ROOT="$(dirname "$SCRIPT_DIR")"
+HPC_DIAG="$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh"
+
+# BATS tests: this section should eventually absorb all tests
+git submodule update --init # just in case, ensure BATS installation
+"$SCRIPT_DIR/bats/bin/bats" "$SCRIPT_DIR" || exit 1
+
 # these make sense as an associative array
 # but hesitant to start using bash4 features
 BASE_FILENAMES="
@@ -51,9 +59,6 @@ INFINIBAND_EXT_FILENAMES="Infiniband/ib-vmext-status"
 
 INFINIBAND_FOLDER="Infiniband/"
 
-SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
-PKG_ROOT="$(dirname "$SCRIPT_DIR")"
-HPC_DIAG="$PKG_ROOT/src/gather_azhpc_vm_diagnostics.sh"
 
 # Test Functions
 
