@@ -73,7 +73,7 @@ Note that not all these files will be generated on all runs. What appears below 
 |   -- uname.txt
 |   -- dmidecode.txt
 |   -- lsmod.txt
-|   -- journald.txt|syslog|messages
+|   -- journald.log|syslog|messages
 |-- CPU
 |   -- lscpu.txt
 |-- Memory
@@ -101,7 +101,7 @@ Note that not all these files will be generated on all runs. What appears below 
 | :--- | :-----: | :------------: | :---------: | :--: |
 | dmesg | dmesg | VM/dmesg.log | Dump of kernel ring buffer | |
 | rsyslog | cp syslog&#124;messages | VM/syslog&#124;messages | Dump of system log | |
-| journald | journalctl | VM/journald.txt | Dump of system log | |
+| journald | journalctl | VM/journald.log | Dump of system log | |
 | Azure IMDS | curl http://169.254.169.254/metadata/...| VM/metadata.json | VM Metadata (ID,Region,OS Image, etc) | |
 | Azure VM Agent | cp /var/log/waagent.log | waagent.log | Logs from the Azure VM Agent | |
 | lspci | lspci | VM/lspci.txt | Info on installed PCI devices | |
