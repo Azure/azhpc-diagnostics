@@ -1,3 +1,4 @@
+https://aka.ms/hpcdiag redirects to this repo.
 OS|Versions / Build | VM Size Family| | | | | |
 | ------ | ------- | ------- | -- | - | - | - | - |
 | Linux | | ND | NC | HBv2 | HB | HC | H |
