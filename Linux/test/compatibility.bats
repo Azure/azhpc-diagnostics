@@ -83,3 +83,33 @@ function setup() {
     run grep -Eq "$SYSLOG_MESSAGE_PATTERN" "$tmp"
     assert_success
 }
+
+@test "Confirm that lspci prints one non-indented line per device" {
+    if [ $(lspci | wc -l) -eq 0 ]; then
+        skip "no pci devices present"
+    fi
+    run lspci -mD
+    assert_success
+    assert_output --regexp '^[0-9a-f]{4}:.*'
+    refute_output --regexp '^[A-Z]'
+}
+
+@test "Confirm that lspci GPU query matches expected count for VM size" {
+    METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
+    if ! METADATA=$(curl --connect-timeout 1 -s -H Metadata:true "$METADATA_URL"); then
+        skip "Not on an azure vm"
+    fi
+    VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    core_count=$(echo $VM_SIZE | cut -d_ -f2 | grep -o '[[:digit:]]\+')
+    case "$VM_SIZE" in
+        Standard_NC6|Standard_NC12|Standard_NC24|Standard_NC24r) GPU_COUNT=$(( core_count / 6 ));;
+        Standard_NC*v2) GPU_COUNT=$(( core_count / 6 ));;
+        Standard_NC*T4_v3) GPU_COUNT=$(( (core_count + 15) / 16 ));; # round up
+        Standard_NC*v3) GPU_COUNT=$(( core_count / 6 ));;
+        Standard_ND6s|Standard_ND12s|Standard_ND24s|Standard_ND24rs) GPU_COUNT=$(( core_count / 6 ));;
+        Standard_ND40rs_v2|Standard_ND96asr_v4) GPU_COUNT=8;;
+        Standard_N*) skip "unknown gpu size $VM_SIZE";;
+        *) GPU_COUNT=0;;
+    esac
+    assert_equal $(lspci -d "$NVIDIA_PCI_ID:" | wc -l) $GPU_COUNT
+}

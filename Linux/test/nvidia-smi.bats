@@ -109,3 +109,15 @@ function teardown {
     assert_line --index 2 --partial '00000000-0000-0000-0000-000000000003'
     assert_line --index 2 --partial '0000000000003'
 }
+
+@test 'detect missing gpu' {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    mkdir -p "$DIAG_DIR/VM"
+
+    MOCK_GPU_PCI_DOMAINS=(  0x0001 0x0002 0x0004 )
+    run check_missing_gpus
+    assert_output --partial 'GPU not coming up in nvidia-smi'
+    assert_output --partial 'BAD GPU'
+    assert_output --partial '00000000-0000-0000-0000-000000000003'
+
+}

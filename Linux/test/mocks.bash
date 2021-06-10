@@ -58,3 +58,26 @@ function nvidia-smi {
 function journalctl {
     cat "$BATS_TEST_DIRNAME/samples/journald.log"
 }
+
+declare -a MOCK_PCI_DEVICES
+MOCK_PCI_DEVICES=( "0001:00:00.0 NVIDIA" "0002:00:00.0 NVIDIA" "0003:00:00.0 NVIDIA" "0004:00:00.0 NVIDIA" "0005:00:00.0 MELLANOX" )
+function lspci {
+    if ! PARSED_OPTIONS=$(getopt -n "$0" -o d:mD -- "$@"); then
+        return 1
+    fi
+    eval set -- "$PARSED_OPTIONS"
+    local vendor # machine_readable show_domain
+    while [ "$1" != "--" ]; do
+        case "$1" in
+            -d) shift; vendor="$1";;
+            # -m) machine_readable=true;;
+            # -D) show_domain=true;;
+        esac
+        shift
+    done
+    for device in "${MOCK_PCI_DEVICES[@]}"; do 
+        if echo "$device" | grep -q NVIDIA || [ "$vendor" != 10de: ]; then
+            echo "$device"
+        fi
+    done
+}

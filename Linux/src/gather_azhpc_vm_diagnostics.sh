@@ -59,7 +59,7 @@ DEVICES_PATH="/sys/bus/vmbus/devices" # store as a variable so it is mockable
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210528 # update upon each release
+RELEASE_DATE=20210610 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -500,12 +500,34 @@ run_amd_gpu_diags() {
 }
 
 function report_bad_gpu {
-    local i="$1"
-    local reason="$2"
-    local pci_domain
-    pci_domain=$(nvidia-smi --query-gpu=pci.domain -i "$i" --format=csv,noheader)
+    if ! PARSED_OPTIONS=$(getopt -n "$0" -o "i" --long "index:,reason:,pci-domain:"  -- "$@"); then
+        echo "Illegal arguments"
+        return 1
+    fi
+    
+    eval set -- "$PARSED_OPTIONS"
+    local i reason pci_domain
+    while [ "$1" != "--" ]; do
+        case "$1" in
+            -i|--index) i=$2;;
+            --reason) reason=$2;;
+            --pci-domain) pci_domain=$2;;
+        esac
+        shift 2
+    done
+    shift
+
     local serial
-    serial=$(nvidia-smi --query-gpu=serial -i "$i" --format=csv,noheader)
+    if [ -n "$i" ]; then
+        if [ -z "$pci_domain" ]; then
+            pci_domain=$(nvidia-smi --query-gpu=pci.domain -i "$i" --format=csv,noheader)
+        else
+            failwith "both gpu index and pci domain passed into report_bad_gpu"
+        fi
+        serial=$(nvidia-smi --query-gpu=serial -i "$i" --format=csv,noheader)
+    else
+        serial=UNKNOWN
+    fi
 
     local device
     device=$(find -L "$DEVICES_PATH" -maxdepth 2 -mindepth 2 -iname "*${pci_domain#0x}*")
@@ -522,7 +544,7 @@ function check_page_retirement {
     while read -r sbe dbe; do 
         local retired_page_count=$(( sbe + dbe ))
         if (( retired_page_count >= 60 )); then
-            report_bad_gpu "$i" "DBE($retired_page_count)"
+            report_bad_gpu --index="$i" --reason="DBE($retired_page_count)"
         fi
         ((i++))
     done
@@ -541,8 +563,23 @@ function check_inforom {
         local i
         i=$(echo "$nvsmi_domains" | awk "/$pci_domain/{print FNR}")
         ((i--)) # convert to 0-index
-        report_bad_gpu "$i" "infoROM Corrupted"
+        report_bad_gpu --index="$i" --reason="infoROM Corrupted"
     done
+}
+
+function check_missing_gpus {
+    local NVIDIA_PCI_ID=10de
+    print_log -e "\tChecking for GPUs that don't appear in nvidia-smi"
+    local pci_domains nvsmi_domains
+    nvsmi_domains=$(mktemp)
+    nvidia-smi --query-gpu=pci.domain --format=csv,noheader >"$nvsmi_domains"
+    pci_domains=$(lspci -d "$NVIDIA_PCI_ID:" -mD | cut -d: -f1)
+    for pci_domain in $pci_domains; do
+        if ! grep -q "^0x$pci_domain$" "$nvsmi_domains"; then
+            report_bad_gpu --pci-domain="$pci_domain" --reason="GPU not coming up in nvidia-smi"
+        fi
+    done
+    rm "$nvsmi_domains"
 }
 
 ####################################################################################################
@@ -696,6 +733,7 @@ function main {
     if is_nvidia_sku "$VM_SIZE"; then
         check_inforom
         check_page_retirement
+        check_missing_gpus
     fi
 
     if is_infiniband_sku "$VM_SIZE"; then
