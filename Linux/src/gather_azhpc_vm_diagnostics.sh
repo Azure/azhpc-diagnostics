@@ -511,10 +511,11 @@ function report_bad_gpu {
     device=$(find -L "$DEVICES_PATH" -maxdepth 2 -mindepth 2 -iname "*${pci_domain#0x}*")
     local bus_id
     bus_id=$(basename "$(dirname "$device")")
-    print_log -e "\tbad gpu ($reason) with bus Id $bus_id and serial number $serial"
+    print_log -e "\tBAD GPU ($reason) with bus Id $bus_id and serial number $serial"
 }
 
 function check_page_retirement {
+    print_log -e "\tChecking for GPUs over the page retirement threshold"
     local i=0
     nvidia-smi --query-gpu=retired_pages.sbe,retired_pages.dbe --format=csv,noheader |
     sed 's/, /\t/g' |
@@ -528,15 +529,18 @@ function check_page_retirement {
 }
 
 function check_inforom {
+    print_log -e "\tChecking for GPUs with corrupted infoROM"
     # e.g. WARNING: infoROM is corrupted at gpu 15B5:00:00.0
     local keywords='WARNING: infoROM is corrupted at gpu'
+    local nvsmi_domains
+    nvsmi_domains=$(nvidia-smi --query-gpu=pci.domain --format=csv,noheader)
 
     grep "$keywords" < "$DIAG_DIR/Nvidia/nvidia-smi.txt" | while IFS= read -r warning; do
         local pci_domain
         pci_domain=$(echo "$warning" | awk '{print $NF}' | awk -F: '{print $1}')
         local i
-        i=$(nvidia-smi --query-gpu=pci.domain --format=csv,noheader | awk "/$pci_domain/{print FNR}")
-        ((i--)) # change to 0-index
+        i=$(echo "$nvsmi_domains" | awk "/$pci_domain/{print FNR}")
+        ((i--)) # convert to 0-index
         report_bad_gpu "$i" "infoROM Corrupted"
     done
 }
@@ -688,6 +692,11 @@ function main {
     print_log "End of Diagnostic Collection"
     print_log ''
     print_log "Checking for common issues"
+
+    if is_nvidia_sku "$VM_SIZE"; then
+        check_inforom
+        check_page_retirement
+    fi
 
     if is_infiniband_sku "$VM_SIZE"; then
         for pkeyNum in {0..1}; do

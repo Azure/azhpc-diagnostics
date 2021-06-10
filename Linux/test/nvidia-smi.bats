@@ -28,7 +28,18 @@ function teardown {
     run check_page_retirement
 
     assert_success
-    refute_output
+    assert_output --partial "Checking for GPUs over the page retirement threshold"
+    refute_output --partial "BAD GPU"
+}
+
+@test "no missing gpus" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    
+    run check_missing_gpus
+
+    assert_success
+    assert_output --partial "Checking for GPUs that don't appear in nvidia-smi"
+    refute_output --partial "BAD GPU"
 }
 
 @test "no inforom corruption" {
@@ -37,13 +48,14 @@ function teardown {
     run check_inforom
 
     assert_success
-    refute_output
+    assert_output --partial "Checking for GPUs with corrupted infoROM"
+    refute_output --partial "BAD GPU"
 }
 
 @test "report bad gpu" {
     . "$BATS_TEST_DIRNAME/mocks.bash"
 
-    run report_bad_gpu 2 reason
+    run report_bad_gpu --index=2 --reason=reason
 
     assert_success
     assert_equal "${#lines[@]}" 1
@@ -63,19 +75,19 @@ function teardown {
     run check_page_retirement
 
     assert_success
-    assert_equal "${#lines[@]}" 3
-
-    assert_line --index 0 --partial 'DBE(60)'
-    assert_line --index 0 --partial '00000000-0000-0000-0000-000000000002'
-    assert_line --index 0 --partial '0000000000002'
+    assert_equal "${#lines[@]}" 4
 
     assert_line --index 1 --partial 'DBE(60)'
-    assert_line --index 1 --partial '00000000-0000-0000-0000-000000000003'
-    assert_line --index 1 --partial '0000000000003'
+    assert_line --index 1 --partial '00000000-0000-0000-0000-000000000002'
+    assert_line --index 1 --partial '0000000000002'
 
-    assert_line --index 2 --partial 'DBE(62)'
-    assert_line --index 2 --partial '00000000-0000-0000-0000-000000000004'
-    assert_line --index 2 --partial '0000000000004'
+    assert_line --index 2 --partial 'DBE(60)'
+    assert_line --index 2 --partial '00000000-0000-0000-0000-000000000003'
+    assert_line --index 2 --partial '0000000000003'
+
+    assert_line --index 3 --partial 'DBE(62)'
+    assert_line --index 3 --partial '00000000-0000-0000-0000-000000000004'
+    assert_line --index 3 --partial '0000000000004'
 }
 
 @test 'detect inforom warnings' {
@@ -87,13 +99,13 @@ function teardown {
     run check_inforom
 
     assert_success
-    assert_equal "${#lines[@]}" 2
-
-    assert_line --index 0 --partial 'infoROM Corrupted'
-    assert_line --index 0 --partial '00000000-0000-0000-0000-000000000001'
-    assert_line --index 0 --partial '0000000000001'
+    assert_equal "${#lines[@]}" 3
 
     assert_line --index 1 --partial 'infoROM Corrupted'
-    assert_line --index 1 --partial '00000000-0000-0000-0000-000000000003'
-    assert_line --index 1 --partial '0000000000003'
+    assert_line --index 1 --partial '00000000-0000-0000-0000-000000000001'
+    assert_line --index 1 --partial '0000000000001'
+
+    assert_line --index 2 --partial 'infoROM Corrupted'
+    assert_line --index 2 --partial '00000000-0000-0000-0000-000000000003'
+    assert_line --index 2 --partial '0000000000003'
 }
