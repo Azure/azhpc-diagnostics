@@ -419,7 +419,7 @@ run_dcgm() {
     fi
 
     if [ "$nv_hostengine_already_running" = false ]; then
-        print_log -e "\tTemporarily tarting nv-hostengine"
+        print_log -e "\tTemporarily starting nv-hostengine"
         nv-hostengine >/dev/null
     fi
 
