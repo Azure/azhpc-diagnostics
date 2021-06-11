@@ -8,7 +8,8 @@ function setup {
 
     DIAG_DIR=$(mktemp -d)
     mkdir -p "$DIAG_DIR/Nvidia"
-    cp "$BATS_TEST_DIRNAME/samples/nvidia-smi.txt" "$DIAG_DIR/Nvidia/nvidia-smi.txt"
+    cp "$BATS_TEST_DIRNAME/samples/nvidia-smi-q.out" "$DIAG_DIR/Nvidia/nvidia-smi-q.out"
+    grep -v 'infoROM is corrupted' "$BATS_TEST_DIRNAME/samples/nvidia-smi-inforom.out" >"$DIAG_DIR/Nvidia/nvidia-smi.out"
 
     SAVED_DEVICES_PATH="$DEVICES_PATH"
     DEVICES_PATH=$(mktemp -d)
@@ -93,8 +94,8 @@ function teardown {
 @test 'detect inforom warnings' {
     . "$BATS_TEST_DIRNAME/mocks.bash"
 
-    echo "WARNING: infoROM is corrupted at gpu 0001:00:00.0" >>"$DIAG_DIR/Nvidia/nvidia-smi.txt"
-    echo "WARNING: infoROM is corrupted at gpu 0003:00:00.0" >>"$DIAG_DIR/Nvidia/nvidia-smi.txt"
+    echo "WARNING: infoROM is corrupted at gpu 0001:00:00.0" >>"$DIAG_DIR/Nvidia/nvidia-smi.out"
+    echo "WARNING: infoROM is corrupted at gpu 0003:00:00.0" >>"$DIAG_DIR/Nvidia/nvidia-smi.out"
 
     run check_inforom
 

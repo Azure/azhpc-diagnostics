@@ -27,7 +27,8 @@
 # - Nvidia GPU
 #   - nvidia-bug-report.log.gz
 #   - nvidia-vmext-status
-#   - nvidia-smi.txt (human-readable)
+#   - nvidia-smi.out
+#   - nvidia-smi-q.out
 #   - nvidia-debugdump.zip (only Nvidia can read)
 #   - dcgm-diag-2.log
 #   - dcgm-diag-3.log
@@ -471,8 +472,14 @@ run_nvidia_diags() {
 
     if command -v nvidia-smi >/dev/null; then
         mkdir -p "$DIAG_DIR/Nvidia"
-        print_log -e "\tQuerying Nvidia GPU Info, writing to {output}/Nvidia/nvidia-smi.txt"
-        timeout 1m nvidia-smi -q >"$DIAG_DIR/Nvidia/nvidia-smi.txt" 2>"$DIAG_DIR/Nvidia/nvidia-smi.txt"
+        print_log -e "\tQuerying Nvidia GPU Info, writing to {output}/Nvidia/nvidia-smi-q.out"
+        timeout 5m nvidia-smi -q >"$DIAG_DIR/Nvidia/nvidia-smi-q.out"
+        if [ $? -eq 124 ]; then
+            print_log -e "\tnvidia-smi -q timed out"
+        else
+            print_log -e "\tRunning plain nvidia-smi, writing to {output}/Nvidia/nvidia-smi.out"
+            timeout 5m nvidia-smi >"$DIAG_DIR/Nvidia/nvidia-smi.out"
+        fi
 
         print_log -e "\tDumping Nvidia GPU internal state to {output}/Nvidia/nvidia-debugdump.zip"
         nvidia-debugdump --dumpall --file "$DIAG_DIR/Nvidia/nvidia-debugdump.zip"
@@ -557,7 +564,7 @@ function check_inforom {
     local nvsmi_domains
     nvsmi_domains=$(nvidia-smi --query-gpu=pci.domain --format=csv,noheader)
 
-    grep "$keywords" < "$DIAG_DIR/Nvidia/nvidia-smi.txt" | while IFS= read -r warning; do
+    grep "$keywords" "$DIAG_DIR/Nvidia/nvidia-smi.out" | while IFS= read -r warning; do
         local pci_domain
         pci_domain=$(echo "$warning" | awk '{print $NF}' | awk -F: '{print $1}')
         local i
