@@ -54,3 +54,7 @@ function nvidia-smi {
     fi
     return 0
 }
+
+function journalctl {
+    cat "$BATS_TEST_DIRNAME/samples/journald.log"
+}

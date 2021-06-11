@@ -1,0 +1,56 @@
+-- Logs begin at Sat 2021-05-29 10:50:24 UTC, end at Sat 2021-05-29 17:47:12 UTC. --
+May 29 10:50:24 ubu audit: PATH item=0 name="/usr/local/bin/iptables" nametype=UNKNOWN cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PROCTITLE proctitle=707974686F6E33002D750062696E2F57414C696E75784167656E742D322E322E35342E322D7079322E372E656767002D72756E2D65787468616E646C657273
+May 29 10:50:24 ubu audit[4635]: SYSCALL arch=c000003e syscall=59 success=no exit=-2 a0=7fa9ed38c150 a1=7fa9ed38c168 a2=7fff2f3bcf50 a3=9 items=1 ppid=1338 pid=4635 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="python3" exe="/usr/bin/python3.6" key="auoms"
+May 29 10:50:24 ubu audit: CWD cwd="/var/lib/waagent/WALinuxAgent-2.2.54.2"
+May 29 10:50:24 ubu audit: PATH item=0 name="/usr/sbin/iptables" nametype=UNKNOWN cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PROCTITLE proctitle=707974686F6E33002D750062696E2F57414C696E75784167656E742D322E322E35342E322D7079322E372E656767002D72756E2D65787468616E646C657273
+May 29 10:50:24 ubu audit[4635]: SYSCALL arch=c000003e syscall=59 success=no exit=-2 a0=7fa9ed38c078 a1=7fa9ed38c168 a2=7fff2f3bcf50 a3=9 items=1 ppid=1338 pid=4635 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="python3" exe="/usr/bin/python3.6" key="auoms"
+May 29 10:50:24 ubu audit: CWD cwd="/var/lib/waagent/WALinuxAgent-2.2.54.2"
+May 29 10:50:24 ubu audit: PATH item=0 name="/usr/bin/iptables" nametype=UNKNOWN cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PROCTITLE proctitle=707974686F6E33002D750062696E2F57414C696E75784167656E742D322E322E35342E322D7079322E372E656767002D72756E2D65787468616E646C657273
+May 29 10:50:24 ubu audit[4635]: SYSCALL arch=c000003e syscall=59 success=yes exit=0 a0=7fa9f0709530 a1=7fa9ed38c168 a2=7fff2f3bcf50 a3=9 items=2 ppid=1338 pid=4635 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/sbin/xtables-multi" key="auoms"
+May 29 10:50:24 ubu audit: EXECVE argc=2 a0="iptables" a1="--version"
+May 29 10:50:24 ubu audit: CWD cwd="/var/lib/waagent/WALinuxAgent-2.2.54.2"
+May 29 10:50:24 ubu audit: PATH item=0 name="/sbin/iptables" inode=3955 dev=08:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PATH item=1 name="/lib64/ld-linux-x86-64.so.2" inode=2079 dev=08:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PROCTITLE proctitle=707974686F6E33002D750062696E2F57414C696E75784167656E742D322E322E35342E322D7079322E372E656767002D72756E2D65787468616E646C657273
+May 29 10:50:24 ubu audit[4636]: SYSCALL arch=c000003e syscall=59 success=no exit=-2 a0=7fa9ed393fd0 a1=7fa9ee0a90b8 a2=7fff2f3bcf50 a3=9 items=1 ppid=1338 pid=4636 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="python3" exe="/usr/bin/python3.6" key="auoms"
+May 29 10:50:24 ubu audit: CWD cwd="/var/lib/waagent/WALinuxAgent-2.2.54.2"
+May 29 10:50:24 ubu audit: PATH item=0 name="/usr/local/sbin/iptables" nametype=UNKNOWN cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PROCTITLE proctitle=707974686F6E33002D750062696E2F57414C696E75784167656E742D322E322E35342E322D7079322E372E656767002D72756E2D65787468616E646C657273
+May 29 10:50:24 ubu audit[4636]: SYSCALL arch=c000003e syscall=59 success=no exit=-2 a0=7fa9ed38c0c0 a1=7fa9ee0a90b8 a2=7fff2f3bcf50 a3=9 items=1 ppid=1338 pid=4636 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="python3" exe="/usr/bin/python3.6" key="auoms"
+May 29 10:50:24 ubu audit: CWD cwd="/var/lib/waagent/WALinuxAgent-2.2.54.2"
+May 29 10:50:24 ubu audit: PATH item=0 name="/usr/local/bin/iptables" nametype=UNKNOWN cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PROCTITLE proctitle=707974686F6E33002D750062696E2F57414C696E75784167656E742D322E322E35342E322D7079322E372E656767002D72756E2D65787468616E646C657273
+May 29 10:50:24 ubu audit[4636]: SYSCALL arch=c000003e syscall=59 success=no exit=-2 a0=7fa9ed38c078 a1=7fa9ee0a90b8 a2=7fff2f3bcf50 a3=9 items=1 ppid=1338 pid=4636 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="python3" exe="/usr/bin/python3.6" key="auoms"
+May 29 10:50:24 ubu audit: CWD cwd="/var/lib/waagent/WALinuxAgent-2.2.54.2"
+May 29 10:50:24 ubu audit: PATH item=0 name="/usr/sbin/iptables" nametype=UNKNOWN cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PROCTITLE proctitle=707974686F6E33002D750062696E2F57414C696E75784167656E742D322E322E35342E322D7079322E372E656767002D72756E2D65787468616E646C657273
+May 29 10:50:24 ubu audit[4636]: SYSCALL arch=c000003e syscall=59 success=no exit=-2 a0=7fa9ed38c150 a1=7fa9ee0a90b8 a2=7fff2f3bcf50 a3=9 items=1 ppid=1338 pid=4636 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="python3" exe="/usr/bin/python3.6" key="auoms"
+May 29 10:50:24 ubu audit: CWD cwd="/var/lib/waagent/WALinuxAgent-2.2.54.2"
+May 29 10:50:24 ubu audit: PATH item=0 name="/usr/bin/iptables" nametype=UNKNOWN cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PROCTITLE proctitle=707974686F6E33002D750062696E2F57414C696E75784167656E742D322E322E35342E322D7079322E372E656767002D72756E2D65787468616E646C657273
+May 29 10:50:24 ubu audit[4636]: SYSCALL arch=c000003e syscall=59 success=yes exit=0 a0=7fa9f0709560 a1=7fa9ee0a90b8 a2=7fff2f3bcf50 a3=9 items=2 ppid=1338 pid=4636 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="iptables" exe="/sbin/xtables-multi" key="auoms"
+May 29 10:50:24 ubu audit: EXECVE argc=16 a0="iptables" a1="-t" a2="security" a3="-C" a4="OUTPUT" a5="-d" a6="168.63.129.16" a7="-p" a8="tcp" a9="-m" a10="conntrack" a11="--ctstate" a12="INVALID,NEW" a13="-j" a14="DROP" a15="-w"
+May 29 10:50:24 ubu audit: CWD cwd="/var/lib/waagent/WALinuxAgent-2.2.54.2"
+May 29 10:50:24 ubu audit: PATH item=0 name="/sbin/iptables" inode=3955 dev=08:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PATH item=1 name="/lib64/ld-linux-x86-64.so.2" inode=2079 dev=08:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:24 ubu audit: PROCTITLE proctitle=707974686F6E33002D750062696E2F57414C696E75784167656E742D322E322E35342E322D7079322E372E656767002D72756E2D65787468616E646C657273
+May 29 10:50:30 ubu audit[4638]: SYSCALL arch=c000003e syscall=59 success=yes exit=0 a0=7f3a630acc30 a1=7f3a6212ba58 a2=7f3a692a0ea0 a3=8 items=2 ppid=2163 pid=4638 auid=4294967295 uid=998 gid=999 euid=998 suid=998 fsuid=998 egid=999 sgid=999 fsgid=999 tty=(none) ses=4294967295 comm="pgrep" exe="/usr/bin/pgrep" key="auoms"
+May 29 10:50:30 ubu audit: EXECVE argc=4 a0="pgrep" a1="-U" a2="omsagent" a3="omiagent"
+May 29 10:50:30 ubu audit: CWD cwd="/"
+May 29 10:50:30 ubu audit: PATH item=0 name="/usr/bin/pgrep" inode=4291 dev=08:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:30 ubu audit: PATH item=1 name="/lib64/ld-linux-x86-64.so.2" inode=2079 dev=08:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:30 ubu audit: PROCTITLE proctitle=7067726570002D55006F6D736167656E74006F6D696167656E74
+May 29 10:50:30 ubu audit[4639]: SYSCALL arch=c000003e syscall=59 success=yes exit=0 a0=561be72daa48 a1=7f3a5d1fd690 a2=7f3a692a0ea0 a3=1 items=2 ppid=2163 pid=4639 auid=4294967295 uid=998 gid=999 euid=998 suid=998 fsuid=998 egid=999 sgid=999 fsgid=999 tty=(none) ses=4294967295 comm="sh" exe="/bin/dash" key="auoms"
+May 29 10:50:30 ubu audit: EXECVE argc=3 a0="sh" a1="-c" a2=2F6F70742F6F6D692F62696E2F6F6D69636C692077716C20726F6F742F736378202253454C4543542050657263656E745573657254696D652C2050657263656E7450726976696C6567656454696D652C20557365644D656D6F72792C2050657263656E74557365644D656D6F72792046524F4D205343585F556E697850726F63657373537461746973746963616C496E666F726D6174696F6E2077686572652048616E646C653D27323136332722207C2067726570203D
+May 29 10:50:30 ubu audit: CWD cwd="/"
+May 29 10:50:30 ubu audit: PATH item=0 name="/bin/sh" inode=27 dev=08:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:30 ubu audit: PATH item=1 name="/lib64/ld-linux-x86-64.so.2" inode=2079 dev=08:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
+May 29 10:50:30 ubu audit: PROCTITLE proctitle=7368002D63002F6F70742F6F6D692F62696E2F6F6D69636C692077716C20726F6F742F736378202253454C4543542050657263656E745573657254696D652C2050657263656E7450726976696C6567656454696D652C20557365644D656D6F72792C2050657263656E74557365644D656D6F72792046524F4D205343585F556E
+May 29 10:50:30 ubu audit[4642]: SYSCALL arch=c000003e syscall=59 success=yes exit=0 a0=7f51710250d8 a1=7f5171025060 a2=7f5171025078 a3=7f51720952c0 items=2 ppid=4639 pid=4642 auid=4294967295 uid=998 gid=999 euid=998 suid=998 fsuid=998 egid=999 sgid=999 fsgid=999 tty=(none) ses=4294967295 comm="grep" exe="/bin/grep" key="auoms"
+May 29 10:50:30 ubu audit[4641]: SYSCALL arch=c000003e syscall=59 success=yes exit=0 a0=7f5171025028 a1=7f5171025130 a2=7f5171025158 a3=7f51720952c0 items=2 ppid=4639 pid=4641 auid=4294967295 uid=998 gid=999 euid=998 suid=998 fsuid=998 egid=999 sgid=999 fsgid=999 tty=(none) ses=4294967295 comm="omicli" exe="/opt/omi/bin/omicli" key="auoms"
+May 29 10:50:30 ubu audit: EXECVE argc=2 a0="grep" a1="="
+May 29 10:50:30 ubu audit: CWD cwd="/"
+May 29 10:50:30 ubu audit: PATH item=0 name="/bin/grep" inode=61 dev=08:01 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
