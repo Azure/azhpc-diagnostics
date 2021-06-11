@@ -8,7 +8,6 @@ SYSLOG_MESSAGE_PATTERN='^[A-Z][a-z]{2} [0-9]{1,2} [0-9]{2}:[0-9]{2}:[0-9]{2} [^ 
 function setup() {
     load "test_helper/bats-support/load"
     load "test_helper/bats-assert/load"
-    GPU_COUNT=$(lspci -d "$NVIDIA_PCI_ID:" | wc -l)
 }
 
 @test "Confirm that nvidia-smi dbe query is still compatible" {
@@ -18,8 +17,6 @@ function setup() {
     run nvidia-smi --query-gpu=retired_pages.sbe,retired_pages.dbe --format=csv,noheader
 
     assert_success
-
-    assert_equal "${#lines[@]}" "$GPU_COUNT"
 
     for i in "${!lines[@]}"; do
         assert_line --index $i --regexp '^[0-9]+, [0-9]+$'
@@ -34,8 +31,6 @@ function setup() {
 
     assert_success
 
-    assert_equal "${#lines[@]}" "$GPU_COUNT"
-
     for i in "${!lines[@]}"; do
         assert_line --index $i --regexp '^0x[0-9A-F]{4,}$'
     done
@@ -48,8 +43,6 @@ function setup() {
     run nvidia-smi --query-gpu=serial --format=csv,noheader
 
     assert_success
-
-    assert_equal "${#lines[@]}" "$GPU_COUNT"
 
     for i in "${!lines[@]}"; do
         assert_line --index $i --regexp '^[0-9]{13}$'
