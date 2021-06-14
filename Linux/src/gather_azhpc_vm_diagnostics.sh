@@ -27,7 +27,8 @@
 # - Nvidia GPU
 #   - nvidia-bug-report.log.gz
 #   - nvidia-vmext-status
-#   - nvidia-smi.txt (human-readable)
+#   - nvidia-smi.out
+#   - nvidia-smi-q.out
 #   - nvidia-debugdump.zip (only Nvidia can read)
 #   - dcgm-diag-2.log
 #   - dcgm-diag-3.log
@@ -59,7 +60,7 @@ DEVICES_PATH="/sys/bus/vmbus/devices" # store as a variable so it is mockable
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210528 # update upon each release
+RELEASE_DATE=20210610 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -419,7 +420,7 @@ run_dcgm() {
     fi
 
     if [ "$nv_hostengine_already_running" = false ]; then
-        print_log -e "\tTemporarily tarting nv-hostengine"
+        print_log -e "\tTemporarily starting nv-hostengine"
         nv-hostengine >/dev/null
     fi
 
@@ -471,8 +472,14 @@ run_nvidia_diags() {
 
     if command -v nvidia-smi >/dev/null; then
         mkdir -p "$DIAG_DIR/Nvidia"
-        print_log -e "\tQuerying Nvidia GPU Info, writing to {output}/Nvidia/nvidia-smi.txt"
-        timeout 1m nvidia-smi -q >"$DIAG_DIR/Nvidia/nvidia-smi.txt" 2>"$DIAG_DIR/Nvidia/nvidia-smi.txt"
+        print_log -e "\tQuerying Nvidia GPU Info, writing to {output}/Nvidia/nvidia-smi-q.out"
+        timeout 5m nvidia-smi -q >"$DIAG_DIR/Nvidia/nvidia-smi-q.out"
+        if [ $? -eq 124 ]; then
+            print_log -e "\tnvidia-smi -q timed out"
+        else
+            print_log -e "\tRunning plain nvidia-smi, writing to {output}/Nvidia/nvidia-smi.out"
+            timeout 5m nvidia-smi >"$DIAG_DIR/Nvidia/nvidia-smi.out"
+        fi
 
         print_log -e "\tDumping Nvidia GPU internal state to {output}/Nvidia/nvidia-debugdump.zip"
         nvidia-debugdump --dumpall --file "$DIAG_DIR/Nvidia/nvidia-debugdump.zip"
@@ -500,45 +507,86 @@ run_amd_gpu_diags() {
 }
 
 function report_bad_gpu {
-    local i="$1"
-    local reason="$2"
-    local pci_domain
-    pci_domain=$(nvidia-smi --query-gpu=pci.domain -i "$i" --format=csv,noheader)
+    if ! PARSED_OPTIONS=$(getopt -n "$0" -o "i" --long "index:,reason:,pci-domain:"  -- "$@"); then
+        echo "Illegal arguments"
+        return 1
+    fi
+    
+    eval set -- "$PARSED_OPTIONS"
+    local i reason pci_domain
+    while [ "$1" != "--" ]; do
+        case "$1" in
+            -i|--index) i=$2;;
+            --reason) reason=$2;;
+            --pci-domain) pci_domain=$2;;
+        esac
+        shift 2
+    done
+    shift
+
     local serial
-    serial=$(nvidia-smi --query-gpu=serial -i "$i" --format=csv,noheader)
+    if [ -n "$i" ]; then
+        if [ -z "$pci_domain" ]; then
+            pci_domain=$(nvidia-smi --query-gpu=pci.domain -i "$i" --format=csv,noheader)
+        else
+            failwith "both gpu index and pci domain passed into report_bad_gpu"
+        fi
+        serial=$(nvidia-smi --query-gpu=serial -i "$i" --format=csv,noheader)
+    else
+        serial=UNKNOWN
+    fi
 
     local device
     device=$(find -L "$DEVICES_PATH" -maxdepth 2 -mindepth 2 -iname "*${pci_domain#0x}*")
     local bus_id
     bus_id=$(basename "$(dirname "$device")")
-    print_log -e "\tbad gpu ($reason) with bus Id $bus_id and serial number $serial"
+    print_log -e "\tBAD GPU ($reason) with bus Id $bus_id and serial number $serial"
 }
 
 function check_page_retirement {
+    print_log -e "\tChecking for GPUs over the page retirement threshold"
     local i=0
     nvidia-smi --query-gpu=retired_pages.sbe,retired_pages.dbe --format=csv,noheader |
     sed 's/, /\t/g' |
     while read -r sbe dbe; do 
         local retired_page_count=$(( sbe + dbe ))
         if (( retired_page_count >= 60 )); then
-            report_bad_gpu "$i" "DBE($retired_page_count)"
+            report_bad_gpu --index="$i" --reason="DBE($retired_page_count)"
         fi
         ((i++))
     done
 }
 
 function check_inforom {
+    print_log -e "\tChecking for GPUs with corrupted infoROM"
     # e.g. WARNING: infoROM is corrupted at gpu 15B5:00:00.0
     local keywords='WARNING: infoROM is corrupted at gpu'
+    local nvsmi_domains
+    nvsmi_domains=$(nvidia-smi --query-gpu=pci.domain --format=csv,noheader)
 
-    grep "$keywords" < "$DIAG_DIR/Nvidia/nvidia-smi.txt" | while IFS= read -r warning; do
+    grep "$keywords" "$DIAG_DIR/Nvidia/nvidia-smi.out" | while IFS= read -r warning; do
         local pci_domain
         pci_domain=$(echo "$warning" | awk '{print $NF}' | awk -F: '{print $1}')
         local i
-        i=$(nvidia-smi --query-gpu=pci.domain --format=csv,noheader | awk "/$pci_domain/{print FNR}")
-        ((i--)) # change to 0-index
-        report_bad_gpu "$i" "infoROM Corrupted"
+        i=$(echo "$nvsmi_domains" | awk "/$pci_domain/{print FNR}")
+        ((i--)) # convert to 0-index
+        report_bad_gpu --index="$i" --reason="infoROM Corrupted"
     done
+}
+
+function check_missing_gpus {
+    local NVIDIA_PCI_ID=10de
+    print_log -e "\tChecking for GPUs that don't appear in nvidia-smi"
+    local pci_domains nvsmi_domains
+    nvsmi_domains=$(mktemp)
+    nvidia-smi --query-gpu=pci.domain --format=csv,noheader >"$nvsmi_domains"
+    pci_domains=$(lspci -d "$NVIDIA_PCI_ID:" -mD | cut -d: -f1)
+    for pci_domain in $pci_domains; do
+        if ! grep -q "^0x$pci_domain$" "$nvsmi_domains"; then
+            report_bad_gpu --pci-domain="$pci_domain" --reason="GPU not coming up in nvidia-smi"
+        fi
+    done
+    rm "$nvsmi_domains"
 }
 
 ####################################################################################################
@@ -688,6 +736,12 @@ function main {
     print_log "End of Diagnostic Collection"
     print_log ''
     print_log "Checking for common issues"
+
+    if is_nvidia_sku "$VM_SIZE"; then
+        check_inforom
+        check_page_retirement
+        check_missing_gpus
+    fi
 
     if is_infiniband_sku "$VM_SIZE"; then
         for pkeyNum in {0..1}; do
