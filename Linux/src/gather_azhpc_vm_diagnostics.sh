@@ -144,23 +144,23 @@ prompt() {
 }
 
 is_infiniband_sku() {
-    echo "$1"| grep -Eiq '[[:digit:]]\+*r'
+    echo "$1" | cut -d_ -f2 | grep -q r
 }
 
 is_nvidia_sku() {
-    echo "$1" | grep -i '^Standard_N' | grep -iqv '^Standard_NV.*_v4'
+    echo "$1" | cut -d_ -f1 --complement | grep -iv '^NV.*_v4' | grep -Eq '^N(C|D|V)'
 }
 
 is_nvidia_compute_sku() {
-    echo "$1" | grep -Eiq '^Standard_N(C|D)'
+    echo "$1" | cut -d_ -f1 --complement | grep -Eq '^N(C|D)'
 }
 
 is_vis_sku() {
-    echo "$1" | grep -iq '^Standard_NV'
+    echo "$1" | cut -d_ -f1 --complement | grep -q '^NV'
 }
 
 is_amd_gpu_sku() {
-    echo "$1" | grep -iq '^Standard_NV.*_v4'
+    echo "$1" | cut -d_ -f1 --complement  | grep -iq '^NV.*_v4'
 }
 
 get_cpu_list() {
