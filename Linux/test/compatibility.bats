@@ -11,7 +11,7 @@ function setup() {
 }
 
 @test "Confirm that nvidia-smi dbe query is still compatible" {
-    if ! command -v nvidia-smi >/dev/null; then
+    if ! nvidia-smi >/dev/null; then
         skip "nvidia-smi not installed"
     fi
     run nvidia-smi --query-gpu=retired_pages.sbe,retired_pages.dbe --format=csv,noheader
@@ -24,7 +24,7 @@ function setup() {
 }
 
 @test "Confirm that nvidia-smi pci.domain query is still compatible" {
-    if ! command -v nvidia-smi >/dev/null; then
+    if ! nvidia-smi >/dev/null; then
         skip "nvidia-smi not installed"
     fi
     run nvidia-smi --query-gpu=pci.domain --format=csv,noheader
@@ -37,7 +37,7 @@ function setup() {
 }
 
 @test "Confirm that nvidia-smi serial query is still compatible" {
-    if ! command -v nvidia-smi >/dev/null; then
+    if ! nvidia-smi >/dev/null; then
         skip "nvidia-smi not installed"
     fi
     run nvidia-smi --query-gpu=serial --format=csv,noheader
