@@ -151,6 +151,10 @@ is_nvidia_sku() {
     echo "$1" | grep -i '^Standard_N' | grep -iqv '^Standard_NV.*_v4'
 }
 
+is_nvidia_compute_sku() {
+    echo "$1" | grep -Eiq '^Standard_N(C|D)'
+}
+
 is_vis_sku() {
     echo "$1" | grep -iq '^Standard_NV'
 }
@@ -589,6 +593,12 @@ function check_missing_gpus {
     rm "$nvsmi_domains"
 }
 
+function check_nouveau {
+    if grep -q nouveau "$DIAG_DIR/VM/lsmod.txt"; then
+        print_log -e '\tNouveau driver detected. This driver is unsupported.'
+    fi
+}
+
 ####################################################################################################
 # End Helper Functions
 ####################################################################################################
@@ -741,6 +751,9 @@ function main {
         check_inforom
         check_page_retirement
         check_missing_gpus
+        if is_nvidia_compute_sku "$VM_SIZE"; then
+            check_nouveau
+        fi
     fi
 
     if is_infiniband_sku "$VM_SIZE"; then
