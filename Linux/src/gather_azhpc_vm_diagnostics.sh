@@ -60,7 +60,7 @@ DEVICES_PATH="/sys/bus/vmbus/devices" # store as a variable so it is mockable
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210617 # update upon each release
+RELEASE_DATE=20210623 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -531,11 +531,17 @@ function report_bad_gpu {
     local serial
     if [ -n "$i" ]; then
         if [ -z "$pci_domain" ]; then
-            pci_domain=$(nvidia-smi --query-gpu=pci.domain -i "$i" --format=csv,noheader)
+            pci_domain=$(nvidia-smi --query-gpu=pci.domain -i "$i" --format=csv,noheader) || {
+                print_log -e "\treport_bad_gpu called, but nvidia-smi is failing"
+                return 1
+            }
         else
             failwith "both gpu index and pci domain passed into report_bad_gpu"
         fi
-        serial=$(nvidia-smi --query-gpu=serial -i "$i" --format=csv,noheader)
+        serial=$(nvidia-smi --query-gpu=serial -i "$i" --format=csv,noheader) || {
+            print_log -e "\treport_bad_gpu called, but nvidia-smi is failing"
+            return 1
+        }
     else
         serial=UNKNOWN
     fi
@@ -548,10 +554,14 @@ function report_bad_gpu {
 }
 
 function check_page_retirement {
-    print_log -e "\tChecking for GPUs over the page retirement threshold"
     local i=0
-    nvidia-smi --query-gpu=retired_pages.sbe,retired_pages.dbe --format=csv,noheader |
-    sed 's/, /\t/g' |
+    local query_output
+    query_output=$(nvidia-smi --query-gpu=retired_pages.sbe,retired_pages.dbe --format=csv,noheader) || {
+        print_log -e "\tcheck_page_retirement called, but nvidia-smi is failing"
+        return 1
+    }
+    print_log -e "\tChecking for GPUs over the page retirement threshold"
+    echo "$query_output" | sed 's/, /\t/g' |
     while read -r sbe dbe; do 
         local retired_page_count=$(( sbe + dbe ))
         if (( retired_page_count >= 60 )); then
@@ -562,11 +572,14 @@ function check_page_retirement {
 }
 
 function check_inforom {
-    print_log -e "\tChecking for GPUs with corrupted infoROM"
     # e.g. WARNING: infoROM is corrupted at gpu 15B5:00:00.0
     local keywords='WARNING: infoROM is corrupted at gpu'
     local nvsmi_domains
-    nvsmi_domains=$(nvidia-smi --query-gpu=pci.domain --format=csv,noheader)
+    nvsmi_domains=$(nvidia-smi --query-gpu=pci.domain --format=csv,noheader) || {
+        print_log -e "\tcheck_inforom called, but nvidia-smi is failing"
+        return 1
+    }
+    print_log -e "\tChecking for GPUs with corrupted infoROM"
 
     grep "$keywords" "$DIAG_DIR/Nvidia/nvidia-smi.out" | while IFS= read -r warning; do
         local pci_domain
@@ -580,11 +593,14 @@ function check_inforom {
 
 function check_missing_gpus {
     local NVIDIA_PCI_ID=10de
-    print_log -e "\tChecking for GPUs that don't appear in nvidia-smi"
     local pci_domains nvsmi_domains
     nvsmi_domains=$(mktemp)
-    nvidia-smi --query-gpu=pci.domain --format=csv,noheader >"$nvsmi_domains"
+    nvidia-smi --query-gpu=pci.domain --format=csv,noheader >"$nvsmi_domains" || {
+        print_log -e "\tcheck_missing_gpus called, but nvidia-smi is failing"
+        return 1
+    }
     pci_domains=$(lspci -d "$NVIDIA_PCI_ID:" -mD | cut -d: -f1)
+    print_log -e "\tChecking for GPUs that don't appear in nvidia-smi"
     for pci_domain in $pci_domains; do
         if ! grep -q "^0x$pci_domain$" "$nvsmi_domains"; then
             report_bad_gpu --pci-domain="$pci_domain" --reason="GPU not coming up in nvidia-smi"
@@ -747,7 +763,7 @@ function main {
     print_log ''
     print_log "Checking for common issues"
 
-    if is_nvidia_sku "$VM_SIZE"; then
+    if is_nvidia_sku "$VM_SIZE" && [ -s "$DIAG_DIR/Nvidia/nvidia-smi.out" ]; then
         check_inforom
         check_page_retirement
         check_missing_gpus
