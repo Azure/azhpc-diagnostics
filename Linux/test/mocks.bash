@@ -81,3 +81,24 @@ function lspci {
         fi
     done
 }
+
+function hide_command {
+    local command="$1"
+    local command_path command_dir tmpdir command_type
+    while command_type=$(type -t "$command"); do
+        case "$command_type" in
+            alias) unalias "$command";;
+            function) unset -f "$command";;
+            file)
+                command_path=$(command -v "$command")
+                command_dir=$(dirname "$command_path")
+                tmpdir=$(mktemp -d)
+                cp -r "$command_dir"/* "$tmpdir"
+                rm "$tmpdir/$command"
+
+                PATH="$(echo "$PATH" | sed "s:\(^\|\:\)$command_dir\(\:\|$\):\1$tmpdir\2:g")"
+                ;;
+            *) echo "cannot remove command of type $command_type"; return 1;;
+        esac
+    done
+}

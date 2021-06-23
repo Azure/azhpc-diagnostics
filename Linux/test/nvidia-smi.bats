@@ -68,6 +68,42 @@ function teardown {
     assert grep -q "$output" "$DIAG_DIR/transcript.log"
 }
 
+@test "page retirement - fail gracefully without nvidia-smi" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    hide_command nvidia-smi
+
+    run check_page_retirement
+    assert_failure
+    refute_output --partial "BAD GPU"
+}
+
+@test "missing gpus - fail gracefully without nvidia-smi" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    hide_command nvidia-smi
+
+    run check_missing_gpus
+    assert_failure
+    refute_output --partial "BAD GPU"
+}
+
+@test "inforom - fail gracefully without nvidia-smi" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    hide_command nvidia-smi
+
+    run check_inforom
+    assert_failure
+    refute_output --partial "BAD GPU"
+}
+
+@test "report_bad_gpu - fail gracefully without nvidia-smi" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    hide_command nvidia-smi
+
+    run report_bad_gpu --index=2 --reason=reason
+    assert_failure
+    refute_output --partial "BAD GPU"
+}
+
 @test "detect dbe over threshold" {
     . "$BATS_TEST_DIRNAME/mocks.bash"
 
