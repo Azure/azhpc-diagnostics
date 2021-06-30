@@ -60,7 +60,7 @@ SYSFS_PATH=/sys # store as a variable so it is mockable
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210706 # update upon each release
+RELEASE_DATE=20210707 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -227,6 +227,21 @@ validate_options() {
     else
         return 0
     fi
+}
+
+# Best-effort attempt to remove PII from VM metadata
+scrub_metadata() {
+    sed 's/,"name" *: *"\(\\"\|[^"]\)*"/,"name":"***REDACTED***"/g' |
+    sed 's/"adminUsername" *: *"\(\\"\|[^"]\)*"/"adminUsername":"***REDACTED***"/g' |
+    sed 's/"computerName" *: *"\(\\"\|[^"]\)*"/"computerName":"***REDACTED***"/g' |
+    sed 's/"path" *: *"\(\\"\|[^"]\)*"/"path":"***REDACTED***"/g' |
+    sed 's/"resourceGroupName" *: *"\(\\"\|[^"]\)*"/"resourceGroupName":"***REDACTED***"/g' |
+    sed 's/"id" *: *"\(\\"\|[^"]\)*"/"id":"***REDACTED***"/g' |
+    sed 's/"resourceId" *: *"\(\\"\|[^"]\)*"/"resourceId":"***REDACTED***"/g' |
+    sed 's/"publicIpAddress" *: *"\(\\"\|[^"]\)*"/"publicIpAddress":"***REDACTED***"/g' |
+    sed 's/"keyData" *: *"\(\\"\|[^"]\)*"/"keyData":"***REDACTED***"/g' |
+    sed 's/"tags" *: *"\(\\"\|[^"]\)*"/"tags":"***REDACTED***"/g' |
+    sed 's/"tagsList" *: *\[\({"name":"\(\\"\|[^"]\)*","value":"\(\\"\|[^"]\)*"},\?\)*\]/"tagsList":"***REDACTED***"/g'
 }
 
 run_lsvmbus_resilient() {
@@ -698,7 +713,7 @@ function main {
         exit
     fi
 
-    METADATA=$(curl -s -H Metadata:true "$METADATA_URL") || 
+    METADATA=$(set -o pipefail && curl -s -H Metadata:true "$METADATA_URL" | scrub_metadata) || 
         failwith "Couldn't connect to Azure IMDS."
 
     VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"')
