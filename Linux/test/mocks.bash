@@ -82,6 +82,10 @@ function lspci {
     done
 }
 
+function lsvmbus {
+    echo "Hyper-V VMBus information goes here"
+}
+
 function ibstat {
     echo "infiniband results"
 }
