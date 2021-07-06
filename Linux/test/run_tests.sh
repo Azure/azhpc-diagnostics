@@ -117,7 +117,8 @@ sudo_basic_script_test() {
     for filename in $filenames; do
         if [[ "$filename" =~ ^Nvidia/stats_.*$ ]] ||
            [[ "$filename" =~ ^Nvidia/nvvs.log$ ]] ||
-           [[ "$filename" =~ ^Infiniband/.* ]]; then
+           [[ "$filename" =~ ^Infiniband/.* ]] ||
+           [[ "$filename" =~ ^VM.* ]]; then
             continue # leave behavior for these undefined
         fi
 
@@ -261,27 +262,6 @@ fi
 echo 'Testing with sudo'
 echo 'Testing with no options'
 sudo_basic_script_test || overall_retcode=1
-
-echo 'Testing without lsvmbus in offline mode'
-tmp=''
-LSVMBUS_PATH=$(command -v lsvmbus)
-if [ -x "$LSVMBUS_PATH" ]; then
-    tmp=$(mktemp)
-    sudo mv "$LSVMBUS_PATH" "$tmp"
-fi
-sudo_basic_script_test --offline '' 'VM/lsvmbus.log' || overall_retcode=1
-if [ -e "$tmp" ]; then
-    sudo mv "$tmp" "$LSVMBUS_PATH"
-fi
-
-echo 'Testing with lsvmbus in offline mode'
-if ! command -v lsvmbus >/dev/null; then
-    echo "echo 'mock lsvmbus output...'" | sudo tee /usr/sbin/lsvmbus >/dev/null
-    sudo_basic_script_test --offline
-    sudo rm /usr/sbin/lsvmbus
-else
-    sudo_basic_script_test --offline
-fi
 
 # raised mem level
 echo 'Testing with --mem-level=1'
