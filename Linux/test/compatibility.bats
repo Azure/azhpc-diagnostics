@@ -151,3 +151,16 @@ function setup() {
         assert [ $pkey_count -gt 0 ]
     done
 }
+
+@test "Confirm that IMDS metadata is printed on a single line" {
+    load "$BATS_TEST_DIRNAME/../src/gather_azhpc_vm_diagnostics.sh" --no-update
+
+    if ! curl --connect-timeout 1 -s -H Metadata:true "$METADATA_URL" >/dev/null; then
+        skip "Not on an azure vm"
+    fi
+
+    run curl -s -H Metadata:true "$METADATA_URL"
+
+    assert_output
+    assert_equal "${#lines[@]}" 1
+}
