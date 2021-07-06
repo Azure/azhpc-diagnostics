@@ -3,7 +3,7 @@
 # i.e. fail if a tool's output has changed to be incompatible with our parsing
 
 NVIDIA_PCI_ID=10de
-SYSLOG_MESSAGE_PATTERN='^[A-Z][a-z]{2} [0-9]{1,2} [0-9]{2}:[0-9]{2}:[0-9]{2} [^ ]+ [^:]+:'
+SYSLOG_MESSAGE_PATTERN='^[A-Z][a-z]{2} [ 0123][0-9] [0-9]{2}:[0-9]{2}:[0-9]{2} [^ ]+ [^:]+:'
 
 function setup() {
     load "test_helper/bats-support/load"
