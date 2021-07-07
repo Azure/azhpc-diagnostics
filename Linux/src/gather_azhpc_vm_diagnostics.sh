@@ -60,7 +60,7 @@ DEVICES_PATH="/sys/bus/vmbus/devices" # store as a variable so it is mockable
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210623 # update upon each release
+RELEASE_DATE=20210705 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -383,6 +383,7 @@ run_infiniband_diags() {
         [ -d "$dir" ] || continue
 
         print_log -e "\tChecking for Infiniband pkeys in $dir"
+        local device
         device=$(basename "$dir")
         mkdir -p "$DIAG_DIR/Infiniband/$device/pkeys"
 
@@ -615,6 +616,19 @@ function check_nouveau {
     fi
 }
 
+function check_pkeys {
+    local device
+    for device_path in "$DIAG_DIR"/Infiniband/*; do
+        [ -d "$device_path" ] || continue
+        device=$(basename "$device_path")
+        for pkeyNum in {0..1}; do
+            if ! [ -s "$DIAG_DIR/Infiniband/$device/pkeys/$pkeyNum" ]; then
+                print_log -e "\tCould not find pkey $pkeyNum for device $device"
+            fi
+        done
+    done
+}
+
 ####################################################################################################
 # End Helper Functions
 ####################################################################################################
@@ -773,11 +787,7 @@ function main {
     fi
 
     if is_infiniband_sku "$VM_SIZE"; then
-        for pkeyNum in {0..1}; do
-            if ! [ -s "$DIAG_DIR/Infiniband/$device/pkeys/$pkeyNum" ]; then
-                print_log -e "\tCould not find pkey $pkeyNum"
-            fi
-        done
+        check_pkeys
     fi
                 
     print_log ''
