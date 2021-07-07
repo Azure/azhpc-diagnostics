@@ -54,7 +54,7 @@ STREAM_URL='https://azhpcstor.blob.core.windows.net/diagtool-binaries/stream.tgz
 LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/lsvmbus'
 HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Linux/src/gather_azhpc_vm_diagnostics.sh'
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
-DEVICES_PATH="/sys/bus/vmbus/devices" # store as a variable so it is mockable
+SYSFS_PATH=/sys # store as a variable so it is mockable
 
 # Mapping for stream benchmark(AMD only)
 declare -A CPU_LIST
@@ -379,7 +379,7 @@ run_infiniband_diags() {
     fi
 
     print_log -e "\tChecking for Infiniband pkeys"
-    for dir in /sys/class/infiniband/*; do
+    for dir in "$SYSFS_PATH"/class/infiniband/*; do
         [ -d "$dir" ] || continue
 
         print_log -e "\tChecking for Infiniband pkeys in $dir"
@@ -552,6 +552,7 @@ function report_bad_gpu {
     fi
 
     local device
+    local DEVICES_PATH="$SYSFS_PATH/bus/vmbus/devices"
     device=$(find -L "$DEVICES_PATH" -maxdepth 2 -mindepth 2 -iname "*${pci_domain#0x}*")
     local bus_id
     bus_id=$(basename "$(dirname "$device")")
