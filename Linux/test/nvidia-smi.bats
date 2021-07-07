@@ -10,17 +10,16 @@ function setup {
     mkdir -p "$DIAG_DIR/Nvidia"
     cp "$BATS_TEST_DIRNAME/samples/nvidia-smi-q.out" "$DIAG_DIR/Nvidia/nvidia-smi-q.out"
     grep -v 'infoROM is corrupted' "$BATS_TEST_DIRNAME/samples/nvidia-smi-inforom.out" >"$DIAG_DIR/Nvidia/nvidia-smi.out"
-
-    SAVED_DEVICES_PATH="$DEVICES_PATH"
-    DEVICES_PATH=$(mktemp -d)
+    
+    SYSFS_PATH=$(mktemp -d)
+    local DEVICES_PATH="$SYSFS_PATH/bus/vmbus/devices"
     for i in {1..4}; do
         mkdir -p "$DEVICES_PATH/00000000-0000-0000-0000-00000000000$i/pci000$i:00"
     done
 }
 
 function teardown {
-    rm -rf "$DIAG_DIR" "$DEVICES_PATH"
-    DEVICES_PATH="$SAVED_DEVICES_PATH"
+    rm -rf "$DIAG_DIR" "$SYSFS_PATH"
 }
 
 @test "no dbe violations" {
