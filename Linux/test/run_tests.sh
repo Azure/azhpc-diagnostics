@@ -47,15 +47,6 @@ Memory/stream.txt"
 INFINIBAND_FILENAMES="Infiniband/ibstat.txt
 Infiniband/ibv_devinfo.txt"
 
-pkey_filenames() {
-    local devices="$1"
-    for device in $(echo "$devices" | tr ',' '\n'); do
-    echo "Infiniband/$device/
-Infiniband/$device/pkeys/
-Infiniband/$device/pkeys/0"
-    done
-}
-
 INFINIBAND_EXT_FILENAMES="Infiniband/ib-vmext-status"
 
 INFINIBAND_FOLDER="Infiniband/"
@@ -126,7 +117,7 @@ sudo_basic_script_test() {
     for filename in $filenames; do
         if [[ "$filename" =~ ^Nvidia/stats_.*$ ]] ||
            [[ "$filename" =~ ^Nvidia/nvvs.log$ ]] ||
-           [[ "$filename" =~ ^Infiniband/.*/pkeys/.* ]]; then
+           [[ "$filename" =~ ^Infiniband/.* ]]; then
             continue # leave behavior for these undefined
         fi
 
@@ -149,7 +140,7 @@ sudo_basic_script_test() {
 
 
 # Read in options
-options_list='pkeys:,infiniband,ib-ext,nvidia,nvidia-ext,dcgm,stream'
+options_list='infiniband,ib-ext,nvidia,nvidia-ext,dcgm,stream'
 if ! PARSED_OPTIONS=$(getopt -n "$0" -o '' --long "$options_list"  -- "$@"); then
         echo "$HELP_MESSAGE"
         exit 1
@@ -159,10 +150,6 @@ eval set -- "$PARSED_OPTIONS"
 while [ "$1" != "--" ]; do
   case "$1" in
     --infiniband) INFINIBAND_PRESENT=true;;
-    --pkeys) 
-        shift
-        IB_DEVICE_LIST="$1"
-        ;;
     --ib-ext) INFINIBAND_EXT_PRESENT=true;;
     --nvidia) NVIDIA_PRESENT=true;;
     --nvidia-ext) NVIDIA_EXT_PRESENT=true;;
@@ -175,10 +162,6 @@ shift
 
 if [ "$INFINIBAND_PRESENT" = true ];then
     BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(echo "$INFINIBAND_FILENAMES"))
-fi
-
-if [ -n "$IB_DEVICE_LIST" ]; then
-    BASE_FILENAMES=$(cat <(echo "$BASE_FILENAMES") <(pkey_filenames "$IB_DEVICE_LIST"))
 fi
 
 if [ "$INFINIBAND_EXT_PRESENT" = true ];then
