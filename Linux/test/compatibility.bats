@@ -111,5 +111,8 @@ function setup() {
         Standard_N*) skip "unknown gpu size $VM_SIZE";;
         *) GPU_COUNT=0;;
     esac
+    if ! lspci >/dev/null 2>/dev/null; then
+        skip "no functioning installation of lspci"
+    fi
     assert_equal $(lspci -d "$NVIDIA_PCI_ID:" | wc -l) $GPU_COUNT
 }
