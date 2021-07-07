@@ -85,6 +85,9 @@ function setup() {
 }
 
 @test "Confirm that lspci prints one non-indented line per device" {
+    if ! lspci >/dev/null 2>/dev/null; then
+        skip "no functioning installation of lspci"
+    fi
     if [ $(lspci | wc -l) -eq 0 ]; then
         skip "no pci devices present"
     fi
@@ -115,6 +118,22 @@ function setup() {
         skip "no functioning installation of lspci"
     fi
     assert_equal $(lspci -d "$NVIDIA_PCI_ID:" | wc -l) $GPU_COUNT
+}
+
+@test "Confirm that GPU bandwidth fields from lspci are formatted as expected" {
+    if ! lspci >/dev/null 2>/dev/null; then
+        skip "no functioning installation of lspci"
+    fi
+    local GPUs
+    GPUs=$(lspci -d "$NVIDIA_PCI_ID:" -m | cut -d' ' -f1)
+    if [ -z "$GPUs" ]; then
+        skip "No GPUs found with lspci"
+    fi
+    for gpu in $GPUs; do
+        run lspci -vv -s $gpu
+        assert_output --regexp 'LnkCap:\s+.*Speed [0-9.]+GT/s.*Width x[0-9]+'
+        assert_output --regexp 'LnkSta:\s+.*Speed [0-9.]+GT/s.*Width x[0-9]+'
+    done
 }
 
 @test "Confirm that pkeys are where we think" {

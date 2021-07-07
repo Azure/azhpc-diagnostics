@@ -7,6 +7,9 @@ MOCK_GPU_SBE_DBE_COUNTS=( "0, 0" "0, 0" "0, 0" "0, 0" )
 declare -a MOCK_GPU_PCI_DOMAINS
 MOCK_GPU_PCI_DOMAINS=( 0x0001 0x0002 0x0003 0x0004 )
 
+declare -a MOCK_GPU_PCI_DOMAIN_INDEX
+MOCK_GPU_PCI_DOMAIN_INDEX=( "0x0001, 0" "0x0002, 1" "0x0003, 2" "0x0004, 3" )
+
 declare -a MOCK_GPU_PCI_SERIALS
 MOCK_GPU_PCI_SERIALS=( 0000000000001 0000000000002 0000000000003 0000000000004 )
 
@@ -42,6 +45,7 @@ function nvidia-smi {
     declare -a data
     case "$query" in
         retired_pages.sbe,retired_pages.dbe) data=("${MOCK_GPU_SBE_DBE_COUNTS[@]}");;
+        pci.domain,index) data=("${MOCK_GPU_PCI_DOMAIN_INDEX[@]}");;
         pci.domain) data=("${MOCK_GPU_PCI_DOMAINS[@]}");;
         serial) data=("${MOCK_GPU_PCI_SERIALS[@]}");;
         
@@ -59,25 +63,41 @@ function journalctl {
     cat "$BATS_TEST_DIRNAME/samples/journald.log"
 }
 
-declare -a MOCK_PCI_DEVICES
+declare -a MOCK_PCI_DEVICES MOCK_LNKCAP MOCK_LNKSTA
 MOCK_PCI_DEVICES=( "0001:00:00.0 NVIDIA" "0002:00:00.0 NVIDIA" "0003:00:00.0 NVIDIA" "0004:00:00.0 NVIDIA" "0005:00:00.0 MELLANOX" )
+MOCK_LNKCAP=( "\tLnkCap: Port #1, Speed 16GT/s, Width x16" "\tLnkCap: Port #2, Speed 16GT/s, Width x16" "\tLnkCap: Port #3, Speed 16GT/s, Width x16" "\tLnkCap: Port #4, Speed 16GT/s, Width x16" "\tLnkCap: Port #5, Speed 8GT/s, Width x16" )
+MOCK_LNKSTA=( "\tLnkSta: Port #1, Speed 16GT/s, Width x16" "\tLnkSta: Port #2, Speed 16GT/s, Width x16" "\tLnkSta: Port #3, Speed 16GT/s, Width x16" "\tLnkSta: Port #4, Speed 16GT/s, Width x16" "\tLnkSta: Port #5, Speed 8GT/s, Width x16" )
 function lspci {
-    if ! PARSED_OPTIONS=$(getopt -n "$0" -o d:mD -- "$@"); then
+    declare -A VENDOR_ID_MAP=(
+        [10de]=NVIDIA
+    )
+    
+    if ! PARSED_OPTIONS=$(getopt -n "$0" -o d:ms:vD -- "$@"); then
         return 1
     fi
     eval set -- "$PARSED_OPTIONS"
-    local vendor # machine_readable show_domain
+    local vendor bus_id verbosity # machine_readable show_domain
     while [ "$1" != "--" ]; do
         case "$1" in
-            -d) shift; vendor="$1";;
+            -d) shift; vendor="${1%:}";;
             # -m) machine_readable=true;;
+            -s) shift; bus_id="$1";;
+            -v) (( verbosity++ ));;
             # -D) show_domain=true;;
         esac
         shift
     done
-    for device in "${MOCK_PCI_DEVICES[@]}"; do 
-        if echo "$device" | grep -q NVIDIA || [ "$vendor" != 10de: ]; then
+    for i in "${!MOCK_PCI_DEVICES[@]}"; do
+        local device=${MOCK_PCI_DEVICES[$i]}
+        local link_capacity=${MOCK_LNKCAP[$i]}
+        local link_status=${MOCK_LNKSTA[$i]}
+        if [[ ( -z "$vendor" || "$device" =~ \ ${VENDOR_ID_MAP[$vendor]}$ )
+            && ( -z "$bus_id" || "$device" =~ ^${bus_id} ) ]]; then
             echo "$device"
+            if (( verbosity >= 2 )); then
+                echo -e "$link_capacity"
+                echo -e "$link_status"
+            fi
         fi
     done
 }
