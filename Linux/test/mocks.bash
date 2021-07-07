@@ -82,6 +82,18 @@ function lspci {
     done
 }
 
+function ibstat {
+    echo "infiniband results"
+}
+
+function ibv_devinfo {
+    if [ "$1" == "-v" ]; then
+        echo "full output"
+    else
+        echo "less output"
+    fi
+}
+
 function hide_command {
     local command="$1"
     local command_path command_dir tmpdir command_type

@@ -116,3 +116,19 @@ function setup() {
     fi
     assert_equal $(lspci -d "$NVIDIA_PCI_ID:" | wc -l) $GPU_COUNT
 }
+
+@test "Confirm that pkeys are where we think" {
+    if ! [ -d /sys/class/infiniband ]; then
+        skip "no infiniband section of sysfs"
+    fi
+    if [ $(ls /sys/class/infiniband | wc -l) -eq 0 ]; then
+        skip "no devices appear in infiniband section of sysfs"
+    fi
+
+    local pkey_count
+    for dir in /sys/class/infiniband/*; do
+        [ -d "$dir" ] || continue
+        pkey_count=$(find "$dir/" -path '*pkeys/*' -execdir echo {} \; | wc -l)
+        assert [ $pkey_count -gt 0 ]
+    done
+}
