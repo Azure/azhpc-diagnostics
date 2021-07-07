@@ -53,6 +53,9 @@ HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Lin
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 SYSFS_PATH=/sys # store as a variable so it is mockable
 
+NVIDIA_PCI_ID=10de
+GPU_PCI_CLASS_ID=0302
+
 # Mapping for stream benchmark(AMD only)
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
@@ -523,10 +526,10 @@ function report_bad_gpu {
     fi
     
     eval set -- "$PARSED_OPTIONS"
-    local i reason pci_domain
+    local index reason pci_domain
     while [ "$1" != "--" ]; do
         case "$1" in
-            -i|--index) i=$2;;
+            -i|--index) index=$2;;
             --reason) reason=$2;;
             --pci-domain) pci_domain=$2;;
         esac
@@ -534,23 +537,24 @@ function report_bad_gpu {
     done
     shift
 
-    local serial
-    if [ -n "$i" ]; then
-        if [ -z "$pci_domain" ]; then
-            pci_domain=$(nvidia-smi --query-gpu=pci.domain -i "$i" --format=csv,noheader) || {
-                print_log -e "\treport_bad_gpu called, but nvidia-smi is failing"
-                return 1
-            }
-        else
-            failwith "both gpu index and pci domain passed into report_bad_gpu"
+    if [ -n "$index" ] && [ -n "$pci_domain" ]; then
+        if [ "$pci_domain" != "$(nvidia-smi --query-gpu=pci.domain -i "$index" --format=csv,noheader)" ]; then
+            print_log -e "\tmismatched gpu index and pci domain passed in"
+            return 1
         fi
-        serial=$(nvidia-smi --query-gpu=serial -i "$i" --format=csv,noheader) || {
-            print_log -e "\treport_bad_gpu called, but nvidia-smi is failing"
+    elif [ -n "$index" ]; then
+        pci_domain=$(nvidia-smi --query-gpu=pci.domain -i "$index" --format=csv,noheader) || {
+            print_log -e "nvidia-smi failed during bad gpu reporting"
             return 1
         }
-    else
-        serial=UNKNOWN
+    elif [ -n "$pci_domain" ]; then
+        index=$(nvidia-smi --query-gpu=pci.domain,index --format=csv,noheader 2>/dev/null | grep -i "^0x$pci_domain" | cut -d' ' -f 2)
     fi
+
+    local serial
+    [ -n "$index" ] &&
+        serial=$(nvidia-smi --query-gpu=serial -i "$index" --format=csv,noheader) || 
+        serial=UNKNOWN
 
     local device
     local DEVICES_PATH="$SYSFS_PATH/bus/vmbus/devices"
@@ -619,6 +623,20 @@ function check_nouveau {
     if grep -q nouveau "$DIAG_DIR/VM/lsmod.txt"; then
         print_log -e '\tNouveau driver detected. This driver is unsupported.'
     fi
+}
+
+function check_pci_bandwidth {
+    for pci_id in $(lspci -d "$NVIDIA_PCI_ID:" -mnD | awk '$2 == "\"'"$GPU_PCI_CLASS_ID"'\"" {print $1}'); do
+        local speed_cap width_cap speed_sta width_sta
+        speed_cap=$(lspci -vv -s "$pci_id" | grep 'LnkCap:' | grep -o 'Speed [0-9.]\+GT/s' | grep -o '[0-9.]\+')
+        speed_sta=$(lspci -vv -s "$pci_id" | grep 'LnkSta:' | grep -o 'Speed [0-9.]\+GT/s' | grep -o '[0-9.]\+')
+        width_cap=$(lspci -vv -s "$pci_id" | grep 'LnkCap:' | grep -o 'Width x[0-9]\+' | grep -o '[0-9]\+')
+        width_sta=$(lspci -vv -s "$pci_id" | grep 'LnkSta:' | grep -o 'Width x[0-9]\+' | grep -o '[0-9]\+')
+        if [ "$speed_sta" -ne "$speed_cap" ] || [ "$width_sta" -ne "$width_cap" ]; then
+            local reason="PCIe link not showing expected performance: OBSERVED Speed ${speed_sta}GT/s, Width x${width_sta}; EXPECTED ${speed_cap}GT/s, Width x${width_cap}"
+            report_bad_gpu --pci-domain="$(echo "$pci_id" | cut -d: -f1)" --reason="$reason"
+        fi
+    done
 }
 
 function check_pkeys {
@@ -783,6 +801,7 @@ function main {
         check_inforom
         check_page_retirement
         check_missing_gpus
+        check_pci_bandwidth
         if is_nvidia_compute_sku "$VM_SIZE"; then
             check_nouveau
         fi
