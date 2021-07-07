@@ -7,6 +7,9 @@ MOCK_GPU_SBE_DBE_COUNTS=( "0, 0" "0, 0" "0, 0" "0, 0" )
 declare -a MOCK_GPU_PCI_DOMAINS
 MOCK_GPU_PCI_DOMAINS=( 0x0001 0x0002 0x000A 0x000D )
 
+declare -a MOCK_GPU_PCI_DOMAIN_INDEX
+MOCK_GPU_PCI_DOMAIN_INDEX=( "0x0001, 0" "0x0002, 1" "0x000A, 2" "0x000D, 3" )
+
 declare -a MOCK_GPU_PCI_SERIALS
 MOCK_GPU_PCI_SERIALS=( 0000000000001 0000000000002 0000000000003 0000000000004 )
 
@@ -42,6 +45,7 @@ function nvidia-smi {
     declare -a data
     case "$query" in
         retired_pages.sbe,retired_pages.dbe) data=("${MOCK_GPU_SBE_DBE_COUNTS[@]}");;
+        pci.domain,index) data=("${MOCK_GPU_PCI_DOMAIN_INDEX[@]}");;
         pci.domain) data=("${MOCK_GPU_PCI_DOMAINS[@]}");;
         serial) data=("${MOCK_GPU_PCI_SERIALS[@]}");;
         
@@ -67,6 +71,8 @@ MOCK_PCI_DEVICES=(
     '000d:00:00.0 "0302" "10de" "1db5" -ra1 "10de" "1249"'
     '1421:00:02.0 "0207" "15b3" "1018" "15b3" "0003"'
 )
+MOCK_LNKCAP=( "\tLnkCap: Port #1, Speed 16GT/s, Width x16" "\tLnkCap: Port #2, Speed 16GT/s, Width x16" "\tLnkCap: Port #3, Speed 16GT/s, Width x16" "\tLnkCap: Port #4, Speed 16GT/s, Width x16" "\tLnkCap: Port #5, Speed 8GT/s, Width x16" )
+MOCK_LNKSTA=( "\tLnkSta: Port #1, Speed 16GT/s, Width x16" "\tLnkSta: Port #2, Speed 16GT/s, Width x16" "\tLnkSta: Port #3, Speed 16GT/s, Width x16" "\tLnkSta: Port #4, Speed 16GT/s, Width x16" "\tLnkSta: Port #5, Speed 8GT/s, Width x16" )
 function lspci {
     if ! PARSED_OPTIONS=$(getopt -n "$0" -o d:mns:vD -- "$@"); then
         return 1
@@ -74,19 +80,28 @@ function lspci {
     eval set -- "$PARSED_OPTIONS"
     local vendor='[0-9a-f]{4}' # default to wildcard
     local bus_id='[0-9a-f]{4}:[0-9a-f]{2}:[01][0-9a-f].[0-7]' # default to wildcard
+    local verbosity=0
 
     while [ "$1" != "--" ]; do
         case "$1" in
-            -d) shift; vendor="$1";;
+            -d) shift; vendor="${1%:}";;
             # -m) machine_readable=true;;
+            -s) shift; bus_id="$1";;
+            -v) (( verbosity++ ));;
             # -D) show_domain=true;;
         esac
         shift
     done
     for i in "${!MOCK_PCI_DEVICES[@]}"; do
         local device=${MOCK_PCI_DEVICES[$i]}
+        local link_capacity=${MOCK_LNKCAP[$i]}
+        local link_status=${MOCK_LNKSTA[$i]}
         if [[ "$device" =~ ^${bus_id}\ \"[0-9a-f]{4}\"\ \"${vendor}\" ]]; then
             echo "$device"
+            if (( verbosity >= 2 )); then
+                echo -e "$link_capacity"
+                echo -e "$link_status"
+            fi
         fi
     done
 }
