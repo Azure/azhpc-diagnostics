@@ -624,7 +624,7 @@ function check_missing_gpus {
     pci_domains=$(lspci -d "$NVIDIA_PCI_ID:" -mD | cut -d: -f1)
     print_log -e "\tChecking for GPUs that don't appear in nvidia-smi"
     for pci_domain in $pci_domains; do
-        if ! grep -q "^0x$pci_domain$" "$nvsmi_domains"; then
+        if ! grep -iq "^0x$pci_domain$" "$nvsmi_domains"; then
             report_bad_gpu --pci-domain="$pci_domain" --reason="GPU not coming up in nvidia-smi"
         fi
     done

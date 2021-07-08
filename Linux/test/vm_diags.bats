@@ -23,7 +23,7 @@ function teardown {
     run with_pipe
     assert_output
 
-    assert_output --partial '"location": "southcentralus"'
+    assert_output --partial '"location":"southcentralus"'
     assert_output --partial '"offer":"ubuntu-hpc"'
     assert_output --partial '"publisher":"microsoft-dsvm"'
     assert_output --partial '"sku":"2004"'

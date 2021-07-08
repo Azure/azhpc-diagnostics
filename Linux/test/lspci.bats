@@ -13,7 +13,7 @@ function setup {
 
     SAVED_DEVICES_PATH="$DEVICES_PATH"
     DEVICES_PATH=$(mktemp -d)
-    for i in {1..4}; do
+    for i in 1 2 a d; do
         mkdir -p "$DEVICES_PATH/00000000-0000-0000-0000-00000000000$i/pci000$i:00"
     done
 }

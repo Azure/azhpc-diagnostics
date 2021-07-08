@@ -5,10 +5,10 @@ declare -a MOCK_GPU_SBE_DBE_COUNTS
 MOCK_GPU_SBE_DBE_COUNTS=( "0, 0" "0, 0" "0, 0" "0, 0" )
 
 declare -a MOCK_GPU_PCI_DOMAINS
-MOCK_GPU_PCI_DOMAINS=( 0x0001 0x0002 0x0003 0x0004 )
+MOCK_GPU_PCI_DOMAINS=( 0x0001 0x0002 0x000A 0x000D )
 
 declare -a MOCK_GPU_PCI_DOMAIN_INDEX
-MOCK_GPU_PCI_DOMAIN_INDEX=( "0x0001, 0" "0x0002, 1" "0x0003, 2" "0x0004, 3" )
+MOCK_GPU_PCI_DOMAIN_INDEX=( "0x0001, 0" "0x0002, 1" "0x000A, 2" "0x000D, 3" )
 
 declare -a MOCK_GPU_PCI_SERIALS
 MOCK_GPU_PCI_SERIALS=( 0000000000001 0000000000002 0000000000003 0000000000004 )
@@ -64,7 +64,7 @@ function journalctl {
 }
 
 declare -a MOCK_PCI_DEVICES MOCK_LNKCAP MOCK_LNKSTA
-MOCK_PCI_DEVICES=( "0001:00:00.0 NVIDIA" "0002:00:00.0 NVIDIA" "0003:00:00.0 NVIDIA" "0004:00:00.0 NVIDIA" "0005:00:00.0 MELLANOX" )
+MOCK_PCI_DEVICES=( "0001:00:00.0 NVIDIA" "0002:00:00.0 NVIDIA" "000a:00:00.0 NVIDIA" "000d:00:00.0 NVIDIA" "0005:00:00.0 MELLANOX" )
 MOCK_LNKCAP=( "\tLnkCap: Port #1, Speed 16GT/s, Width x16" "\tLnkCap: Port #2, Speed 16GT/s, Width x16" "\tLnkCap: Port #3, Speed 16GT/s, Width x16" "\tLnkCap: Port #4, Speed 16GT/s, Width x16" "\tLnkCap: Port #5, Speed 8GT/s, Width x16" )
 MOCK_LNKSTA=( "\tLnkSta: Port #1, Speed 16GT/s, Width x16" "\tLnkSta: Port #2, Speed 16GT/s, Width x16" "\tLnkSta: Port #3, Speed 16GT/s, Width x16" "\tLnkSta: Port #4, Speed 16GT/s, Width x16" "\tLnkSta: Port #5, Speed 8GT/s, Width x16" )
 function lspci {
