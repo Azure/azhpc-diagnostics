@@ -56,6 +56,9 @@ HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Lin
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 SYSFS_PATH=/sys # store as a variable so it is mockable
 
+NVIDIA_PCI_ID=10de
+GPU_PCI_CLASS_ID=0302
+
 # Mapping for stream benchmark(AMD only)
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
@@ -559,7 +562,7 @@ function report_bad_gpu {
             return 1
         }
     elif [ -n "$pci_domain" ]; then
-        index=$(nvidia-smi --query-gpu=pci.domain,index --format=csv,noheader 2>/dev/null | awk "/^0x$pci_domain/{print \$2}")
+        index=$(nvidia-smi --query-gpu=pci.domain,index --format=csv,noheader 2>/dev/null | grep -i "^0x$pci_domain" | cut -d' ' -f 2)
     fi
 
     local serial
@@ -614,14 +617,13 @@ function check_inforom {
 }
 
 function check_missing_gpus {
-    local NVIDIA_PCI_ID=10de
     local pci_domains nvsmi_domains
     nvsmi_domains=$(mktemp)
     nvidia-smi --query-gpu=pci.domain --format=csv,noheader >"$nvsmi_domains" || {
         print_log -e "\tcheck_missing_gpus called, but nvidia-smi is failing"
         return 1
     }
-    pci_domains=$(lspci -d "$NVIDIA_PCI_ID:" -mD | cut -d: -f1)
+    pci_domains=$(lspci -d "$NVIDIA_PCI_ID:" -mnD | grep -E "\S+\s\"$GPU_PCI_CLASS_ID\"" | cut -d: -f1)
     print_log -e "\tChecking for GPUs that don't appear in nvidia-smi"
     for pci_domain in $pci_domains; do
         if ! grep -iq "^0x$pci_domain$" "$nvsmi_domains"; then
@@ -638,8 +640,7 @@ function check_nouveau {
 }
 
 function check_pci_bandwidth {
-    local NVIDIA_PCI_ID=10de
-    for pci_id in $(lspci -d "$NVIDIA_PCI_ID:" -mD | cut -d' ' -f1); do
+    for pci_id in $(lspci -d "$NVIDIA_PCI_ID:" -mnD | awk '$2 == "\"'"$GPU_PCI_CLASS_ID"'\"" {print $1}'); do
         local speed_cap width_cap speed_sta width_sta
         speed_cap=$(lspci -vv -s "$pci_id" | grep 'LnkCap:' | grep -o 'Speed [0-9.]\+GT/s' | grep -o '[0-9.]\+')
         speed_sta=$(lspci -vv -s "$pci_id" | grep 'LnkSta:' | grep -o 'Speed [0-9.]\+GT/s' | grep -o '[0-9.]\+')

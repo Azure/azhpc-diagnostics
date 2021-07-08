@@ -64,19 +64,24 @@ function journalctl {
 }
 
 declare -a MOCK_PCI_DEVICES MOCK_LNKCAP MOCK_LNKSTA
-MOCK_PCI_DEVICES=( "0001:00:00.0 NVIDIA" "0002:00:00.0 NVIDIA" "000a:00:00.0 NVIDIA" "000d:00:00.0 NVIDIA" "0005:00:00.0 MELLANOX" )
+MOCK_PCI_DEVICES=( 
+    '0001:00:00.0 "0302" "10de" "1db5" -ra1 "10de" "1249"'
+    '0002:00:00.0 "0302" "10de" "1db5" -ra1 "10de" "1249"'
+    '000a:00:00.0 "0302" "10de" "1db5" -ra1 "10de" "1249"'
+    '000d:00:00.0 "0302" "10de" "1db5" -ra1 "10de" "1249"'
+    '1421:00:02.0 "0207" "15b3" "1018" "15b3" "0003"'
+)
 MOCK_LNKCAP=( "\tLnkCap: Port #1, Speed 16GT/s, Width x16" "\tLnkCap: Port #2, Speed 16GT/s, Width x16" "\tLnkCap: Port #3, Speed 16GT/s, Width x16" "\tLnkCap: Port #4, Speed 16GT/s, Width x16" "\tLnkCap: Port #5, Speed 8GT/s, Width x16" )
 MOCK_LNKSTA=( "\tLnkSta: Port #1, Speed 16GT/s, Width x16" "\tLnkSta: Port #2, Speed 16GT/s, Width x16" "\tLnkSta: Port #3, Speed 16GT/s, Width x16" "\tLnkSta: Port #4, Speed 16GT/s, Width x16" "\tLnkSta: Port #5, Speed 8GT/s, Width x16" )
 function lspci {
-    declare -A VENDOR_ID_MAP=(
-        [10de]=NVIDIA
-    )
-    
-    if ! PARSED_OPTIONS=$(getopt -n "$0" -o d:ms:vD -- "$@"); then
+    if ! PARSED_OPTIONS=$(getopt -n "$0" -o d:mns:vD -- "$@"); then
         return 1
     fi
     eval set -- "$PARSED_OPTIONS"
-    local vendor bus_id verbosity # machine_readable show_domain
+    local vendor='[0-9a-f]{4}' # default to wildcard
+    local bus_id='[0-9a-f]{4}:[0-9a-f]{2}:[01][0-9a-f].[0-7]' # default to wildcard
+    local verbosity
+
     while [ "$1" != "--" ]; do
         case "$1" in
             -d) shift; vendor="${1%:}";;
@@ -91,8 +96,7 @@ function lspci {
         local device=${MOCK_PCI_DEVICES[$i]}
         local link_capacity=${MOCK_LNKCAP[$i]}
         local link_status=${MOCK_LNKSTA[$i]}
-        if [[ ( -z "$vendor" || "$device" =~ \ ${VENDOR_ID_MAP[$vendor]}$ )
-            && ( -z "$bus_id" || "$device" =~ ^${bus_id} ) ]]; then
+        if [[ "$device" =~ ^${bus_id}\ \"[0-9a-f]{4}\"\ \"${vendor}\" ]]; then
             echo "$device"
             if (( verbosity >= 2 )); then
                 echo -e "$link_capacity"

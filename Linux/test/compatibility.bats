@@ -3,6 +3,7 @@
 # i.e. fail if a tool's output has changed to be incompatible with our parsing
 
 NVIDIA_PCI_ID=10de
+GPU_PCI_CLASS_ID=0302
 SYSLOG_MESSAGE_PATTERN='^[A-Z][a-z]{2} [ 0123][0-9] [0-9]{2}:[0-9]{2}:[0-9]{2} [^ ]+ [^:]+:'
 
 function setup() {
@@ -117,7 +118,7 @@ function setup() {
     if ! lspci >/dev/null 2>/dev/null; then
         skip "no functioning installation of lspci"
     fi
-    assert_equal $(lspci -d "$NVIDIA_PCI_ID:" | wc -l) $GPU_COUNT
+    assert_equal $(lspci -d "$NVIDIA_PCI_ID:" -mnD | awk '$2 == "\"'"$GPU_PCI_CLASS_ID"'\"" {print $1}' | wc -l) $GPU_COUNT
 }
 
 @test "Confirm that GPU bandwidth fields from lspci are formatted as expected" {
@@ -125,7 +126,7 @@ function setup() {
         skip "no functioning installation of lspci"
     fi
     local GPUs
-    GPUs=$(lspci -d "$NVIDIA_PCI_ID:" -m | cut -d' ' -f1)
+    GPUs=$(lspci -d "$NVIDIA_PCI_ID:" -mnD | awk '$2 == "\"'"$GPU_PCI_CLASS_ID"'\"" {print $1}')
     if [ -z "$GPUs" ]; then
         skip "No GPUs found with lspci"
     fi

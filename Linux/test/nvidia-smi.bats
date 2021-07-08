@@ -155,5 +155,5 @@ function teardown {
     assert_output --partial 'GPU not coming up in nvidia-smi'
     assert_output --partial 'BAD GPU'
     assert_output --partial '00000000-0000-0000-0000-00000000000a'
-
+    assert_output --partial '0000000000003'
 }
