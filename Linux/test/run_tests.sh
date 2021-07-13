@@ -20,7 +20,6 @@ VM/waagent.log
 VM/dmesg.log
 VM/lspci.txt
 VM/lsvmbus.log
-VM/metadata.json
 VM/ifconfig.txt
 VM/sysctl.txt
 VM/uname.txt

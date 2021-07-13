@@ -5,7 +5,6 @@
 # tarball directory structure:
 # - VM Information
 #   - dmesg.log
-#   - metadata.json
 #   - waagent.log
 #   - lspci.txt
 #   - lsvmbus.log
@@ -48,8 +47,6 @@
 # Begin Constants
 ####################################################################################################
 
-METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
-IMAGE_METADATA_URL='http://169.254.169.254/metadata/instance/compute/storageProfile/imageReference?api-version=2020-06-01'
 STREAM_URL='https://azhpcstor.blob.core.windows.net/diagtool-binaries/stream.tgz'
 LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/lsvmbus'
 HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Linux/src/gather_azhpc_vm_diagnostics.sh'
@@ -212,6 +209,11 @@ check_for_updates() {
     rm "$tmpfile"
 }
 
+get_metadata() {
+    local path="$1"
+    curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/$path?api-version=2021-03-01&format=text"
+}
+
 ####################################################################################################
 # End Utility Functions
 ####################################################################################################
@@ -282,9 +284,6 @@ fetch_syslog() {
 
 run_vm_diags() {
     mkdir -p "$DIAG_DIR/VM"
-
-    print_log -e "\tWriting Azure VM Metadata to {output}/VM/metadata.json"
-    echo "$METADATA" >"$DIAG_DIR/VM/metadata.json"
 
     if [ -f /var/log/waagent.log ]; then
         print_log -e "\tCopying Azure VM Agent logs to {output}/VM/waagent.log"
@@ -684,27 +683,23 @@ function main {
         exit
     fi
 
-    METADATA=$(curl -s -H Metadata:true "$METADATA_URL") || 
-        failwith "Couldn't connect to Azure IMDS."
+    VM_SIZE=$(get_metadata compute/vmSize)
+    VM_ID=$(get_metadata compute/vmId)
 
-    VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"')
-    VM_ID=$(echo "$METADATA" | grep -o '"vmId":"[^"]*"' | cut -d: -f2 | tr -d '"')
-
-    IMAGE_METADATA=$(curl -s -H Metadata:true "$IMAGE_METADATA_URL")
-    IMAGE_PUBLISHER=$(echo "$IMAGE_METADATA" | grep -o '"publisher":"[^"]*"' | cut -d: -f2 | tr -d '"')
-    IMAGE_OFFER=$(echo "$IMAGE_METADATA" | grep -o '"offer":"[^"]*"' | cut -d: -f2 | tr -d '"')
-    IMAGE_SKU=$(echo "$IMAGE_METADATA" | grep -o '"sku":"[^"]*"' | cut -d: -f2 | tr -d '"')
-    IMAGE_VERSION=$(echo "$IMAGE_METADATA" | grep -o '"version":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    IMAGE_PUBLISHER=$(get_metadata compute/storageProfile/imageReference/publisher)
+    IMAGE_OFFER=$(get_metadata compute/storageProfile/imageReference/offer)
+    IMAGE_SKU=$(get_metadata compute/storageProfile/imageReference/sku)
+    IMAGE_VERSION=$(get_metadata compute/storageProfile/imageReference/version)
     TIMESTAMP=$(date -u +"%F.UTC%H.%M.%S")
 
     echo ''
     print_log "Virtual Machine Details:"
     print_log -e "\tID: $VM_ID"
     print_log -e "\tSize: $VM_SIZE"
-    if [ -z "$IMAGE_PUBLISHER" ] ||
-        [ -z "$IMAGE_OFFER" ] ||
-        [ -z "$IMAGE_SKU" ] ||
-        [ -z "$IMAGE_VERSION" ]; then
+    if [ "$IMAGE_PUBLISHER" == 'Not found' ] ||
+        [ "$IMAGE_OFFER" == 'Not found' ] ||
+        [ "$IMAGE_SKU" == 'Not found' ] ||
+        [ "$IMAGE_VERSION" == 'Not found' ]; then
         print_log -e "\tUnrecognized (Likely Custom) OS Image"
     else
         print_log -e "\tOS Image: $IMAGE_PUBLISHER:$IMAGE_OFFER:$IMAGE_SKU:$IMAGE_VERSION"
