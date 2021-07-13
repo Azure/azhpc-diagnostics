@@ -693,6 +693,16 @@ function main {
     TIMESTAMP=$(date -u +"%F.UTC%H.%M.%S")
 
     echo ''
+
+    DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
+
+    rm -r "$DIAG_DIR" 2>/dev/null
+    mkdir -p "$DIAG_DIR"
+
+    # keep a trace of this execution
+    exec 2> "$DIAG_DIR/hpcdiag.err"
+    set -x
+
     print_log "Virtual Machine Details:"
     print_log -e "\tID: $VM_ID"
     print_log -e "\tSize: $VM_SIZE"
@@ -733,15 +743,6 @@ function main {
         print_log -e "\t- AMD GPU"
     fi
     print_log ''
-
-    DIAG_DIR="$DIAG_DIR_LOC/$VM_ID.$TIMESTAMP"
-
-    rm -r "$DIAG_DIR" 2>/dev/null
-    mkdir -p "$DIAG_DIR"
-
-    # keep a trace of this execution
-    exec 2> "$DIAG_DIR/hpcdiag.err"
-    set -x
 
     print_log "Collecting Linux VM Diagnostics"
     run_vm_diags
