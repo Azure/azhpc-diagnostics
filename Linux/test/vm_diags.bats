@@ -13,11 +13,6 @@ function teardown {
     rm -rf "$DIAG_DIR"
 }
 
-@test "Check that metadata is collected" {
-    run run_vm_diags
-    assert [ -s "$DIAG_DIR/VM/metadata.json" ]
-}
-
 @test "Check that waagent.log is collected" {
     run run_vm_diags
     assert [ ! -s /var/log/waagent.log -o -s "$DIAG_DIR/VM/waagent.log" ]

@@ -65,7 +65,6 @@ Note that not all these files will be generated on all runs. What appears below 
 |-- hpcdiag.err (stderr output from the run, including set -x trace)
 |-- VM
 |   -- dmesg.log
-|   -- metadata.json
 |   -- waagent.log
 |   -- lspci.txt
 |   -- lsvmbus.log
@@ -104,7 +103,7 @@ Note that not all these files will be generated on all runs. What appears below 
 | dmesg | dmesg | VM/dmesg.log | Dump of kernel ring buffer | |
 | rsyslog | cp syslog&#124;messages | VM/syslog&#124;messages | Dump of system log | |
 | journald | journalctl | VM/journald.log | Dump of system log | |
-| Azure IMDS | curl http://169.254.169.254/metadata/...| VM/metadata.json | VM Metadata (ID,Region,OS Image, etc) | |
+| Azure IMDS | curl http://169.254.169.254/metadata/...| transcript.log | VM Metadata (ID,Region,OS Image, etc) | |
 | Azure VM Agent | cp /var/log/waagent.log | waagent.log | Logs from the Azure VM Agent | |
 | lspci | lspci | VM/lspci.txt | Info on installed PCI devices | |
 | lsvmbus | lsvmbus | VM/lsvmbus.log | Displays devices attached to the Hyper-V VMBus | |
