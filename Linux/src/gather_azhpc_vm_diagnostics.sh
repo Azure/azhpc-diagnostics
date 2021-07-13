@@ -235,6 +235,7 @@ run_lsvmbus_resilient() {
 
     if command -v lsvmbus >/dev/null; then
         print_log -e "\tWriting Hyper-V VMBus device list to {output}/VM/lsvmbus.log"
+        mkdir -p "$DIAG_DIR/VM"
         lsvmbus -vv >"$DIAG_DIR/VM/lsvmbus.log"
     else
         if ! PYTHON="$(get_python_command)"; then
@@ -248,6 +249,7 @@ run_lsvmbus_resilient() {
             LSVMBUS_PATH=$(mktemp)
             if curl -s "$LSVMBUS_URL" > "$LSVMBUS_PATH"; then
                 print_log -e "\tWriting Hyper-V VMBus device list to {output}/VM/lsvmbus.log"
+                mkdir -p "$DIAG_DIR/VM"
                 $PYTHON "$LSVMBUS_PATH" -vv >"$DIAG_DIR/VM/lsvmbus.log"
                 rm -f "$LSVMBUS_PATH"
             else
