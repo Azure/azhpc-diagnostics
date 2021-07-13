@@ -1,0 +1,34 @@
+{
+    "Registrations": [
+        {
+            "Component": {
+                "Type": "git",
+                "git": { 
+                    "RepositoryUrl": "https://github.com/bats-core/bats-core",
+                    "CommitHash": "b81de286448ae3a11e3342783dcdc1b08765a421"
+                }
+            },
+            "DevelopmentDependency": true
+        },
+        {
+            "Component": {
+                "Type": "git",
+                "git": { 
+                    "RepositoryUrl": "https://github.com/bats-core/bats-support",
+                    "CommitHash": "d140a65044b2d6810381935ae7f0c94c7023c8c3"
+                }
+            },
+            "DevelopmentDependency": true
+        },
+        {
+            "Component": {
+                "Type": "git",
+                "git": { 
+                    "RepositoryUrl": "https://github.com/bats-core/bats-assert",
+                    "CommitHash": "0a8dd57e2cc6d4cc064b1ed6b4e79b9f7fee096f"
+                }
+            },
+            "DevelopmentDependency": true
+        }
+    ]
+}
