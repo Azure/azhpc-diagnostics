@@ -13,7 +13,7 @@ function setup {
     
     SYSFS_PATH=$(mktemp -d)
     local DEVICES_PATH="$SYSFS_PATH/bus/vmbus/devices"
-    for i in {1..4}; do
+    for i in 1 2 a d; do
         mkdir -p "$DEVICES_PATH/00000000-0000-0000-0000-00000000000$i/pci000$i:00"
     done
 }
@@ -61,7 +61,7 @@ function teardown {
     assert_equal "${#lines[@]}" 1
 
     assert_line --index 0 --partial 'reason'
-    assert_line --index 0 --partial '00000000-0000-0000-0000-000000000003'
+    assert_line --index 0 --partial '00000000-0000-0000-0000-00000000000a'
     assert_line --index 0 --partial '0000000000003'
 
     assert grep -q "$output" "$DIAG_DIR/transcript.log"
@@ -118,11 +118,11 @@ function teardown {
     assert_line --index 1 --partial '0000000000002'
 
     assert_line --index 2 --partial 'DBE(60)'
-    assert_line --index 2 --partial '00000000-0000-0000-0000-000000000003'
+    assert_line --index 2 --partial '00000000-0000-0000-0000-00000000000a'
     assert_line --index 2 --partial '0000000000003'
 
     assert_line --index 3 --partial 'DBE(62)'
-    assert_line --index 3 --partial '00000000-0000-0000-0000-000000000004'
+    assert_line --index 3 --partial '00000000-0000-0000-0000-00000000000d'
     assert_line --index 3 --partial '0000000000004'
 }
 
@@ -130,7 +130,7 @@ function teardown {
     . "$BATS_TEST_DIRNAME/mocks.bash"
 
     echo "WARNING: infoROM is corrupted at gpu 0001:00:00.0" >>"$DIAG_DIR/Nvidia/nvidia-smi.out"
-    echo "WARNING: infoROM is corrupted at gpu 0003:00:00.0" >>"$DIAG_DIR/Nvidia/nvidia-smi.out"
+    echo "WARNING: infoROM is corrupted at gpu 000A:00:00.0" >>"$DIAG_DIR/Nvidia/nvidia-smi.out"
 
     run check_inforom
 
@@ -142,7 +142,7 @@ function teardown {
     assert_line --index 1 --partial '0000000000001'
 
     assert_line --index 2 --partial 'infoROM Corrupted'
-    assert_line --index 2 --partial '00000000-0000-0000-0000-000000000003'
+    assert_line --index 2 --partial '00000000-0000-0000-0000-00000000000a'
     assert_line --index 2 --partial '0000000000003'
 }
 
@@ -150,10 +150,10 @@ function teardown {
     . "$BATS_TEST_DIRNAME/mocks.bash"
     mkdir -p "$DIAG_DIR/VM"
 
-    MOCK_GPU_PCI_DOMAINS=(  0x0001 0x0002 0x0004 )
+    MOCK_GPU_PCI_DOMAINS=(  0x0001 0x0002 0x000D )
     run check_missing_gpus
     assert_output --partial 'GPU not coming up in nvidia-smi'
     assert_output --partial 'BAD GPU'
-    assert_output --partial '00000000-0000-0000-0000-000000000003'
+    assert_output --partial '00000000-0000-0000-0000-00000000000a'
 
 }
