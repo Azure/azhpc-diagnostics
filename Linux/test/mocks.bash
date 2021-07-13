@@ -60,13 +60,21 @@ function journalctl {
 }
 
 declare -a MOCK_PCI_DEVICES
-MOCK_PCI_DEVICES=( "0001:00:00.0 NVIDIA" "0002:00:00.0 NVIDIA" "000a:00:00.0 NVIDIA" "000d:00:00.0 NVIDIA" "0005:00:00.0 MELLANOX" )
+MOCK_PCI_DEVICES=( 
+    '0001:00:00.0 "0302" "10de" "1db5" -ra1 "10de" "1249"'
+    '0002:00:00.0 "0302" "10de" "1db5" -ra1 "10de" "1249"'
+    '000a:00:00.0 "0302" "10de" "1db5" -ra1 "10de" "1249"'
+    '000d:00:00.0 "0302" "10de" "1db5" -ra1 "10de" "1249"'
+    '1421:00:02.0 "0207" "15b3" "1018" "15b3" "0003"'
+)
 function lspci {
-    if ! PARSED_OPTIONS=$(getopt -n "$0" -o d:mD -- "$@"); then
+    if ! PARSED_OPTIONS=$(getopt -n "$0" -o d:mns:vD -- "$@"); then
         return 1
     fi
     eval set -- "$PARSED_OPTIONS"
-    local vendor # machine_readable show_domain
+    local vendor='[0-9a-f]{4}' # default to wildcard
+    local bus_id='[0-9a-f]{4}:[0-9a-f]{2}:[01][0-9a-f].[0-7]' # default to wildcard
+
     while [ "$1" != "--" ]; do
         case "$1" in
             -d) shift; vendor="$1";;
@@ -75,8 +83,9 @@ function lspci {
         esac
         shift
     done
-    for device in "${MOCK_PCI_DEVICES[@]}"; do 
-        if echo "$device" | grep -q NVIDIA || [ "$vendor" != 10de: ]; then
+    for i in "${!MOCK_PCI_DEVICES[@]}"; do
+        local device=${MOCK_PCI_DEVICES[$i]}
+        if [[ "$device" =~ ^${bus_id}\ \"[0-9a-f]{4}\"\ \"${vendor}\" ]]; then
             echo "$device"
         fi
     done

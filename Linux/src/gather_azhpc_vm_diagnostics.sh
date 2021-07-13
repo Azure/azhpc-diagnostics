@@ -599,14 +599,13 @@ function check_inforom {
 }
 
 function check_missing_gpus {
-    local NVIDIA_PCI_ID=10de
     local pci_domains nvsmi_domains
     nvsmi_domains=$(mktemp)
     nvidia-smi --query-gpu=pci.domain --format=csv,noheader >"$nvsmi_domains" || {
         print_log -e "\tcheck_missing_gpus called, but nvidia-smi is failing"
         return 1
     }
-    pci_domains=$(lspci -d "$NVIDIA_PCI_ID:" -mD | cut -d: -f1)
+    pci_domains=$(lspci -d "$NVIDIA_PCI_ID:" -mnD | grep -E "\S+\s\"$GPU_PCI_CLASS_ID\"" | cut -d: -f1)
     print_log -e "\tChecking for GPUs that don't appear in nvidia-smi"
     for pci_domain in $pci_domains; do
         if ! grep -iq "^0x$pci_domain$" "$nvsmi_domains"; then
