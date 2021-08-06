@@ -10,6 +10,9 @@ MOCK_GPU_PCI_DOMAINS=( 0x0001 0x0002 0x000A 0x000D )
 declare -a MOCK_GPU_PCI_DOMAIN_INDEX
 MOCK_GPU_PCI_DOMAIN_INDEX=( "0x0001, 0" "0x0002, 1" "0x000A, 2" "0x000D, 3" )
 
+declare -a MOCK_GPU_PCI_INDEX
+MOCK_GPU_PCI_INDEX=( 0 1 2 3 )
+
 declare -a MOCK_GPU_PCI_SERIALS
 MOCK_GPU_PCI_SERIALS=( 0000000000001 0000000000002 0000000000003 0000000000004 )
 
@@ -46,6 +49,7 @@ function nvidia-smi {
     case "$query" in
         retired_pages.sbe,retired_pages.dbe) data=("${MOCK_GPU_SBE_DBE_COUNTS[@]}");;
         pci.domain,index) data=("${MOCK_GPU_PCI_DOMAIN_INDEX[@]}");;
+        index) data=("${MOCK_GPU_PCI_INDEX[@]}");;
         pci.domain) data=("${MOCK_GPU_PCI_DOMAINS[@]}");;
         serial) data=("${MOCK_GPU_PCI_SERIALS[@]}");;
         

@@ -31,6 +31,7 @@
 #   - nvidia-debugdump.zip (only Nvidia can read)
 #   - dcgm-diag-2.log
 #   - dcgm-diag-3.log
+#   - bandwidthTest/*.csv
 #   - nvvs.log
 #   - stats_*.json
 #
@@ -52,6 +53,7 @@ LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/ls
 HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Linux/src/gather_azhpc_vm_diagnostics.sh'
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 SYSFS_PATH=/sys # store as a variable so it is mockable
+CUDA_SAMPLE_BW_DIR=/usr/local/cuda/samples/1_Utilities/bandwidthTest
 
 NVIDIA_PCI_ID=10de
 GPU_PCI_CLASS_ID=0302
@@ -60,7 +62,7 @@ GPU_PCI_CLASS_ID=0302
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210713 # update upon each release
+RELEASE_DATE=20210806 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -215,6 +217,12 @@ check_for_updates() {
 get_metadata() {
     local path="$1"
     curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/$path?api-version=2021-03-01&format=text"
+}
+
+# needed a way to compare floats even when bc/python isn't installed
+# exit code mirrors [ "$1" -lt "$2" ]
+float_lt() {
+    awk -v a="$1" -v b="$2" 'BEGIN { exit !(a < b) }' /dev/null
 }
 
 ####################################################################################################
@@ -499,6 +507,8 @@ run_nvidia_diags() {
         if is_dcgm_installed; then
             run_dcgm
         fi
+
+        run_cuda_bandwidth_test "$VM_SIZE" || [ "$VM_SIZE" != "Standard_ND96asr_v4" ]
     else
         print_log -e "\tNo Nvidia Driver Detected"
     fi
@@ -619,6 +629,45 @@ function check_missing_gpus {
     rm "$nvsmi_domains"
 }
 
+function get_gpu_numa {
+    local vm_size="$1"
+    local device="$2"
+    case "$vm_size" in
+        Standard_ND96asr_v4) (( 0 <= device  && device < 8 )) && echo -n $(( device / 2 )) ;;
+        *) return 1;; # size not supported for gpu-numa tests
+    esac
+}
+
+function run_cuda_bandwidth_test {
+    local vm_size="$1"
+    local did_compile
+    [ -d "$CUDA_SAMPLE_BW_DIR" ] || return 1
+    mkdir -p "$DIAG_DIR/Nvidia/bandwidthTest"
+    if ! [ -x "$CUDA_SAMPLE_BW_DIR/bandwidthTest" ]; then
+        command -v make >/dev/null || return 1
+        make --directory="$CUDA_SAMPLE_BW_DIR" >/dev/null || return 1
+        did_compile=true
+    fi
+
+    local numa_node
+    for device in $(nvidia-smi --query-gpu=index --format=csv,noheader); do
+        numa_node=$(get_gpu_numa "$VM_SIZE" "$device") || break
+        export CUDA_VISIBLE_DEVICES="$device"
+        print_log -e "\tRunning CUDA Bandwidth Test, writing to {output}/Nvidia/bandwidthTest/$device.csv"
+        numactl \
+            --cpunodebind="$numa_node" \
+            --membind="$numa_node" \
+            "$CUDA_SAMPLE_BW_DIR/bandwidthTest" \
+            --dtoh --htod --csv --device="$device" \
+            >"$DIAG_DIR/Nvidia/bandwidthTest/$device.out" \
+            2>"$DIAG_DIR/Nvidia/bandwidthTest/$device.err"
+    done
+
+    if [ "$did_compile" == true ]; then
+        make --directory="$CUDA_SAMPLE_BW_DIR" clean >/dev/null || return 1
+    fi
+}
+
 function check_nouveau {
     if grep -q nouveau "$DIAG_DIR/VM/lsmod.txt"; then
         print_log -e '\tNouveau driver detected. This driver is unsupported.'
@@ -635,6 +684,32 @@ function check_pci_bandwidth {
         if [ "$speed_sta" -ne "$speed_cap" ] || [ "$width_sta" -ne "$width_cap" ]; then
             local reason="PCIe link not showing expected performance: OBSERVED Speed ${speed_sta}GT/s, Width x${width_sta}; EXPECTED ${speed_cap}GT/s, Width x${width_cap}"
             report_bad_gpu --pci-domain="$(echo "$pci_id" | cut -d: -f1)" --reason="$reason"
+        fi
+    done
+}
+
+function expected_cuda_bandwidth {
+    local vm_size="$1"
+    case "$vm_size" in
+        Standard_ND96asr_v4) echo -n 32;;
+        *) return 1;; # size not supported for gpu-numa tests
+    esac
+}
+
+function check_cuda_bandwidth {
+    local vm_size="$1"
+    local expected_bw
+    expected_bw=$(expected_cuda_bandwidth "$vm_size")
+
+    print_log -e "\tChecking for GPUs with low bandwidth"
+    for results in "$DIAG_DIR"/Nvidia/bandwidthTest/*.csv; do
+        [ -s "$results" ] || continue
+        local h2dbw d2hbw
+        h2dbw=$(awk '/^bandwidthTest-H2D-Pinned/{ print $4 }' "$results")
+        d2hbw=$(awk '/^bandwidthTest-D2H-Pinned/{ print $4 }' "$results")
+        if float_lt "$h2dbw" $(( expected_bw / 2 )) ||
+           float_lt "$d2hbw" $(( expected_bw / 2 )); then
+            report_bad_gpu --index="$(basename "$results" .csv)" --reason="Underperforming in CUDA BW test"
         fi
     done
 }
@@ -802,6 +877,9 @@ function main {
         check_page_retirement
         check_missing_gpus
         check_pci_bandwidth
+        if [ "$VM_SIZE" == "Standard_ND96asr_v4" ]; then
+            check_cuda_bandwidth "$VM_SIZE"
+        fi
         if is_nvidia_compute_sku "$VM_SIZE"; then
             check_nouveau
         fi

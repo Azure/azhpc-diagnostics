@@ -1,0 +1,11 @@
+[CUDA Bandwidth Test] - Starting...
+Running on...
+
+ Device 1: A100-SXM4-40GB
+ Quick Mode
+
+bandwidthTest-H2D-Pinned, Bandwidth = 25.7 GB/s, Time = 0.00124 s, Size = 32000000 bytes, NumDevsUsed = 1
+bandwidthTest-D2H-Pinned, Bandwidth = 21.8 GB/s, Time = 0.00147 s, Size = 32000000 bytes, NumDevsUsed = 1
+Result = PASS
+
+NOTE: The CUDA Samples are not meant for performance measurements. Results may vary when GPU Boost is enabled.

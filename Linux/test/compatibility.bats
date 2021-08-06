@@ -5,6 +5,7 @@
 NVIDIA_PCI_ID=10de
 GPU_PCI_CLASS_ID=0302
 SYSLOG_MESSAGE_PATTERN='^[A-Z][a-z]{2} [ 0123][0-9] [0-9]{2}:[0-9]{2}:[0-9]{2} [^ ]+ [^:]+:'
+CUDA_SAMPLE_BW_DIR=/usr/local/cuda/samples/1_Utilities/bandwidthTest
 
 function setup() {
     load "test_helper/bats-support/load"
@@ -151,4 +152,37 @@ function setup() {
         pkey_count=$(find "$dir/" -path '*pkeys/*' -execdir echo {} \; | wc -l)
         assert [ $pkey_count -gt 0 ]
     done
+}
+
+@test "confirm cuda samples location" {
+    if ! command -v nvidia-smi >/dev/null; then
+        skip "no Nvidia driver installed"
+    fi
+
+    assert [ -d "$CUDA_SAMPLE_BW_DIR" ]
+}
+
+@test "confirm cuda build steps and behavior" {
+    if [ $(lspci -d "$NVIDIA_PCI_ID:" -mnD | awk '$2 == "\"'"$GPU_PCI_CLASS_ID"'\"" {print $1}' | wc -l) -eq 0 ]; then
+        skip "no Nvidia GPUs installed"
+    fi
+    if ! [ -d "$CUDA_SAMPLE_BW_DIR" ]; then
+        skip "no cuda samples installed"
+    fi
+    if ! command -v make >/dev/null; then
+        skip "no make command installed"
+    fi
+
+    run make --directory="$CUDA_SAMPLE_BW_DIR"
+    assert_success
+    assert [ -x "$CUDA_SAMPLE_BW_DIR/bandwidthTest" ]
+
+    run "$CUDA_SAMPLE_BW_DIR/bandwidthTest" --dtoh --htod --csv --device=0
+    assert_success
+
+    assert_output --regexp 'bandwidthTest-H2D-Pinned, Bandwidth = [0-9]+\.[0-9]+ GB/s'
+    assert_output --regexp 'bandwidthTest-D2H-Pinned, Bandwidth = [0-9]+\.[0-9]+ GB/s'
+
+    run make --directory="$CUDA_SAMPLE_BW_DIR" clean
+    assert_success
 }

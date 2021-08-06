@@ -84,6 +84,7 @@ Note that not all these files will be generated on all runs. What appears below 
 |   -- ibv_devinfo.txt
 |   -- pkeys/*
 |-- Nvidia
+    -- bandwidthTest/*.csv
     -- nvidia-bug-report.log.gz
     -- nvidia-vmext.log
     -- nvidia-smi.out
@@ -122,6 +123,7 @@ Note that not all these files will be generated on all runs. What appears below 
 | NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.out Nvidia/nvidia-smi-q.out | Checks GPU health and configuration | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
 | NVIDIA Debug Dump | nvidia-debugbump | Nvidia/nvidia-debugdump.zip | Generates a binary blob for use with Nvidia internal engineering tools | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
 | NVIDIA Data Center GPU Manager | dcgmi | Nvidia/dcgm-diag-2.log Nvidia/dcgm-diag-3.log Nvidia/nvvs.log Nvidia/stats_*.json | Health monitoring for GPUs in cluster environments | [DCGM EULA](https://developer.download.nvidia.com/compute/DCGM/docs/EULA.pdf) |
+| CUDA Bandwidth Test | /usr/local/cuda/samples/1_Utilities/bandwidthTest/bandwidthTest | Nvidia/bandwidthTest/*.csv | Runs the CUDA Samples' Bandwidth Test | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) |
 | GPU Driver Extension Logs | cp /var/log/azure/nvidia-vmext-status | Nvidia/nvidia-vmext-status | Logs from the GPU Driver Extension | |
 
 

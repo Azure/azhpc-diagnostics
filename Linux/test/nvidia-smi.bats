@@ -157,3 +157,32 @@ function teardown {
     assert_output --partial '00000000-0000-0000-0000-00000000000a'
     assert_output --partial '0000000000003'
 }
+
+@test 'detect low gpu bandwidth' {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    mkdir -p "$DIAG_DIR/Nvidia/bandwidthTest"
+    for i in {0..7}; do
+        cp "$BATS_TEST_DIRNAME/samples/cudabw.csv" "$DIAG_DIR/Nvidia/bandwidthTest/$i.csv"
+    done
+    sed -i -E 's|(bandwidthTest-H2D-Pinned, Bandwidth =) [0-9]+\.[0-9]+ GB/s|\1 10.0 GB/s|g' "$DIAG_DIR/Nvidia/bandwidthTest/1.csv"
+    sed -i -E 's|(bandwidthTest-D2H-Pinned, Bandwidth =) [0-9]+\.[0-9]+ GB/s|\1 10.0 GB/s|g' "$DIAG_DIR/Nvidia/bandwidthTest/2.csv"
+    sed -i -E 's|(bandwidthTest-H2D-Pinned, Bandwidth =) [0-9]+\.[0-9]+ GB/s|\1 10.0 GB/s|g' "$DIAG_DIR/Nvidia/bandwidthTest/3.csv"
+    sed -i -E 's|(bandwidthTest-D2H-Pinned, Bandwidth =) [0-9]+\.[0-9]+ GB/s|\1 10.0 GB/s|g' "$DIAG_DIR/Nvidia/bandwidthTest/3.csv"
+    run check_cuda_bandwidth Standard_ND96asr_v4
+
+    assert_success
+
+    assert_line --index 1 --partial 'Underperforming in CUDA BW test'
+    assert_line --index 1 --partial '00000000-0000-0000-0000-000000000002'
+    assert_line --index 1 --partial '0000000000002'
+
+    assert_line --index 2 --partial 'Underperforming in CUDA BW test'
+    assert_line --index 2 --partial '00000000-0000-0000-0000-00000000000a'
+    assert_line --index 2 --partial '0000000000003'
+
+    assert_line --index 3 --partial 'Underperforming in CUDA BW test'
+    assert_line --index 3 --partial '00000000-0000-0000-0000-00000000000d'
+    assert_line --index 3 --partial '0000000000004'
+
+    assert_equal "${#lines[@]}" 4
+}
