@@ -106,12 +106,14 @@ function teardown {
 @test "detect dbe over threshold" {
     . "$BATS_TEST_DIRNAME/mocks.bash"
 
-    MOCK_GPU_SBE_DBE_COUNTS=( "29, 30" "60, 0" "0, 60" "31, 31" )
+    sed -i 's/0,0000000000001,0x0001,0,0/0,0000000000001,0x0001,29,30/g' "$NVIDIA_SMI_QUERY_GPU_DATA"
+    sed -i 's/1,0000000000002,0x0002,0,0/1,0000000000002,0x0002,60,0/g' "$NVIDIA_SMI_QUERY_GPU_DATA"
+    sed -i 's/2,0000000000003,0x000A,0,0/2,0000000000003,0x000A,0,60/g' "$NVIDIA_SMI_QUERY_GPU_DATA"
+    sed -i 's/3,0000000000004,0x000D,0,0/3,0000000000004,0x000D,31,31/g' "$NVIDIA_SMI_QUERY_GPU_DATA"
 
     run check_page_retirement
 
     assert_success
-    assert_equal "${#lines[@]}" 4
 
     assert_line --index 1 --partial 'DBE(60)'
     assert_line --index 1 --partial '00000000-0000-0000-0000-000000000002'
@@ -124,6 +126,8 @@ function teardown {
     assert_line --index 3 --partial 'DBE(62)'
     assert_line --index 3 --partial '00000000-0000-0000-0000-00000000000d'
     assert_line --index 3 --partial '0000000000004'
+
+    assert_equal "${#lines[@]}" 4
 }
 
 @test 'detect inforom warnings' {
@@ -135,7 +139,6 @@ function teardown {
     run check_inforom
 
     assert_success
-    assert_equal "${#lines[@]}" 3
 
     assert_line --index 1 --partial 'infoROM Corrupted'
     assert_line --index 1 --partial '00000000-0000-0000-0000-000000000001'
@@ -144,18 +147,21 @@ function teardown {
     assert_line --index 2 --partial 'infoROM Corrupted'
     assert_line --index 2 --partial '00000000-0000-0000-0000-00000000000a'
     assert_line --index 2 --partial '0000000000003'
+
+    assert_equal "${#lines[@]}" 3
 }
 
 @test 'detect missing gpu' {
     . "$BATS_TEST_DIRNAME/mocks.bash"
     mkdir -p "$DIAG_DIR/VM"
 
-    MOCK_GPU_PCI_DOMAINS=(  0x0001 0x0002 0x000D )
+    sed -i '/2,0000000000003,0x000A,0,0/d' "$NVIDIA_SMI_QUERY_GPU_DATA"
+
     run check_missing_gpus
     assert_output --partial 'GPU not coming up in nvidia-smi'
     assert_output --partial 'BAD GPU'
     assert_output --partial '00000000-0000-0000-0000-00000000000a'
-    assert_output --partial '0000000000003'
+    assert_output --partial 'UNKNOWN'
 }
 
 @test 'detect low gpu bandwidth' {
