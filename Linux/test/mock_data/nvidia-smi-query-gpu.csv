@@ -1,0 +1,5 @@
+index,serial,pci.domain,retired_pages.dbe,retired_pages.sbe,remapped_rows.failure,gpu_bus_id
+0,0000000000001,0x0001,0,0,[N/A],00000001:00:00.0
+1,0000000000002,0x0002,0,0,[N/A],00000002:00:00.0
+2,0000000000003,0x000A,0,0,[N/A],0000000A:00:00.0
+3,0000000000004,0x000D,0,0,[N/A],0000000D:00:00.0
