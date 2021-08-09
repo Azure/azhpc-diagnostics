@@ -1,30 +1,26 @@
 #!/bin/bash
 # mocks of 3rd party tools
 
-declare -a MOCK_GPU_SBE_DBE_COUNTS
-MOCK_GPU_SBE_DBE_COUNTS=( "0, 0" "0, 0" "0, 0" "0, 0" )
-
-declare -a MOCK_GPU_PCI_DOMAINS
-MOCK_GPU_PCI_DOMAINS=( 0x0001 0x0002 0x000A 0x000D )
-
-declare -a MOCK_GPU_PCI_DOMAIN_INDEX
-MOCK_GPU_PCI_DOMAIN_INDEX=( "0x0001, 0" "0x0002, 1" "0x000A, 2" "0x000D, 3" )
-
-declare -a MOCK_GPU_PCI_SERIALS
-MOCK_GPU_PCI_SERIALS=( 0000000000001 0000000000002 0000000000003 0000000000004 )
+NVIDIA_SMI_QUERY_GPU_DATA=$(mktemp)
+cp "$BATS_TEST_DIRNAME/mock_data/nvidia-smi-query-gpu.csv" "$NVIDIA_SMI_QUERY_GPU_DATA"
 
 function nvidia-smi {
-    if ! PARSED_OPTIONS=$(getopt -n "$0" -o i: --long 'query-gpu:,format:' -- "$@"); then
+    if ! PARSED_OPTIONS=$(getopt -n "$0" -o i: --long 'query-gpu:,query-remapped-rows:,format:' -- "$@"); then
         echo "Invalid combination of input arguments. Please run 'nvidia-smi -h' for help."
         return 1
     fi
     eval set -- "$PARSED_OPTIONS"
-    local query i format
+    local query i format data_file
     while [ "$1" != "--" ]; do
         case "$1" in
-            --query-gpu)
+            --query-*)
+                if [ -n "$query" ]; then
+                    echo 'Only one --query-* switch can be used at a time.'
+                    return 1
+                fi
                 shift
                 query="$1"
+                data_file="$NVIDIA_SMI_QUERY_GPU_DATA"
             ;;
             -i)
                 shift
@@ -41,22 +37,29 @@ function nvidia-smi {
         echo '"--format=" switch is missing. Please run 'nvidia-smi -h' for help.'
         return 1
     fi
-    local data
-    declare -a data
-    case "$query" in
-        retired_pages.sbe,retired_pages.dbe) data=("${MOCK_GPU_SBE_DBE_COUNTS[@]}");;
-        pci.domain,index) data=("${MOCK_GPU_PCI_DOMAIN_INDEX[@]}");;
-        pci.domain) data=("${MOCK_GPU_PCI_DOMAINS[@]}");;
-        serial) data=("${MOCK_GPU_PCI_SERIALS[@]}");;
-        
-        *) echo "Field \"$query\" is not a valid field to query."; return 1;;
-    esac
-    if [ -z "$i" ]; then
-        for line in "${data[@]}"; do echo "$line"; done
-    else
-        echo "${data[$i]}"
-    fi
-    return 0
+
+    local header header_to_colnum requested_fields
+    declare -a header
+    declare -A header_to_colnum
+    declare -a requested_fields
+
+    IFS=',' read -r -a header <<< "$(head -1 "$data_file")"
+
+    local colnum=0
+    for column in "${header[@]}"; do
+        header_to_colnum[$column]=$((colnum++))
+    done
+
+    IFS=',' read -r -a requested_fields <<< "$query"
+
+    tail -n +2 "$data_file" |
+    (if [ -z "$i" ]; then cat; else awk -F, "\$$((header_to_colnum[index] + 1))==$i" ; fi) |
+    while IFS=',' read -r -a data; do
+        for field in "${requested_fields[@]}"; do
+            echo -n "${data[${header_to_colnum[$field]}]}, "
+        done
+        echo ""
+    done | sed 's/, $//g'
 }
 
 function journalctl {
