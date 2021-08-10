@@ -11,9 +11,12 @@ function setup() {
     load "test_helper/bats-assert/load"
 }
 
-@test "Confirm that nvidia-smi dbe query is still compatible" {
+@test "Confirm that nvidia-smi sbe/dbe query is still compatible" {
     if ! nvidia-smi >/dev/null; then
         skip "nvidia-smi not installed"
+    fi
+    if nvidia-smi --query-gpu=retired_pages.sbe,retired_pages.dbe --format=csv,noheader | grep -Eiq '[N/A]'; then
+        skip "GPU doesn't report retired pages"
     fi
     run nvidia-smi --query-gpu=retired_pages.sbe,retired_pages.dbe --format=csv,noheader
 
@@ -22,6 +25,33 @@ function setup() {
     for i in "${!lines[@]}"; do
         assert_line --index $i --regexp '^[0-9]+, [0-9]+$'
     done
+}
+
+@test "Confirm that nvidia-smi remapped rows query is still compatible" {
+    if ! nvidia-smi >/dev/null; then
+        skip "nvidia-smi not installed"
+    fi
+    if nvidia-smi --query-remapped-rows=remapped_rows.failure,gpu_bus_id --format=csv,noheader | grep -Eiq '[N/A]'; then
+        skip "GPU doesn't report remapped rows"
+    fi
+    run nvidia-smi --query-remapped-rows=remapped_rows.failure,gpu_bus_id --format=csv,noheader
+
+    for i in "${!lines[@]}"; do
+        assert_line --index $i --regexp '^[01], [0-9a-fA-F]{8}:.*$'
+    done
+}
+
+@test "Confirm that GPU supports retired pages XOR remapped rows" {
+    if ! nvidia-smi >/dev/null; then
+        skip "nvidia-smi not installed"
+    fi
+    
+    run nvidia-smi --query-gpu=retired_pages.sbe,retired_pages.dbe --format=csv,noheader
+    if nvidia-smi --query-remapped-rows=remapped_rows.failure --format=csv,noheader | grep -Eiq '[N/A]'; then
+        refute_output --partial '[N/A]'
+    else
+        assert_output --partial '[N/A]'
+    fi
 }
 
 @test "Confirm that nvidia-smi pci.domain query is still compatible" {
