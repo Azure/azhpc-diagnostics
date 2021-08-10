@@ -130,6 +130,29 @@ function teardown {
     assert_equal "${#lines[@]}" 4
 }
 
+@test "detect row remap failure" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+
+    sed -i 's|\[N/A\],00000001:00:00.0|0,00000001:00:00.0|g' "$NVIDIA_SMI_QUERY_GPU_DATA"
+    sed -i 's|\[N/A\],00000002:00:00.0|1,00000002:00:00.0|g' "$NVIDIA_SMI_QUERY_GPU_DATA"
+    sed -i 's|\[N/A\],0000000A:00:00.0|0,0000000A:00:00.0|g' "$NVIDIA_SMI_QUERY_GPU_DATA"
+    sed -i 's|\[N/A\],0000000D:00:00.0|1,0000000D:00:00.0|g' "$NVIDIA_SMI_QUERY_GPU_DATA"
+
+    run check_page_retirement
+
+    assert_success
+
+    assert_line --index 1 --partial 'Row Remap Failure'
+    assert_line --index 1 --partial '00000000-0000-0000-0000-000000000002'
+    assert_line --index 1 --partial '0000000000002'
+
+    assert_line --index 2 --partial 'Row Remap Failure'
+    assert_line --index 2 --partial '00000000-0000-0000-0000-00000000000d'
+    assert_line --index 2 --partial '0000000000004'
+
+    assert_equal "${#lines[@]}" 3
+}
+
 @test 'detect inforom warnings' {
     . "$BATS_TEST_DIRNAME/mocks.bash"
 
