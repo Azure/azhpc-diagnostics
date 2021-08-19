@@ -220,9 +220,12 @@ get_metadata() {
 }
 
 # needed a way to compare floats even when bc/python isn't installed
-# exit code mirrors [ "$1" -lt "$2" ]
-float_lt() {
-    awk -v a="$1" -v b="$2" 'BEGIN { exit !(a < b) }' /dev/null
+float_op() {
+    case "$2" in
+        \+|-|\*|/) awk -v a="$1" -v b="$3" "BEGIN { printf \"%f\", (a $2 b) }" /dev/null;;
+        \<|\<=|\>|\>=|==|!=) awk -v a="$1" -v b="$3" "BEGIN { exit !(a $2 b) }" /dev/null;;
+        *) return 2;;
+    esac
 }
 
 ####################################################################################################
@@ -713,17 +716,19 @@ function expected_cuda_bandwidth {
 
 function check_cuda_bandwidth {
     local vm_size="$1"
-    local expected_bw
+    local expected_bw tolerance_factor threshold
     expected_bw=$(expected_cuda_bandwidth "$vm_size")
+    tolerance_factor=0.8
+    threshold=$(float_op "$expected_bw" '*' "$tolerance_factor")
 
     print_log -e "\tChecking for GPUs with low bandwidth"
     for results in "$DIAG_DIR"/Nvidia/bandwidthTest/*.csv; do
         [ -s "$results" ] || continue
-        local h2dbw d2hbw
-        h2dbw=$(awk '/^bandwidthTest-H2D-Pinned/{ print $4 }' "$results")
-        d2hbw=$(awk '/^bandwidthTest-D2H-Pinned/{ print $4 }' "$results")
-        if float_lt "$h2dbw" $(( expected_bw / 2 )) ||
-           float_lt "$d2hbw" $(( expected_bw / 2 )); then
+        local host_to_device device_to_host
+        host_to_device=$(awk '/^bandwidthTest-H2D-Pinned/{ print $4 }' "$results")
+        device_to_host=$(awk '/^bandwidthTest-D2H-Pinned/{ print $4 }' "$results")
+        if float_op "$host_to_device" '<' "$threshold" ||
+           float_op "$device_to_host" '<' "$threshold"; then
             report_bad_gpu --index="$(basename "$results" .csv)" --reason="Underperforming in CUDA BW test"
         fi
     done
