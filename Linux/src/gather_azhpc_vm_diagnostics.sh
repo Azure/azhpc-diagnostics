@@ -533,22 +533,30 @@ run_amd_gpu_diags() {
 }
 
 function report_bad_gpu {
-    if ! PARSED_OPTIONS=$(getopt -n "$0" -o "i" --long "index:,reason:,pci-domain:"  -- "$@"); then
+    if ! PARSED_OPTIONS=$(getopt -n "$0" -o "i" --long "index:,reason:,pci-domain:,warning"  -- "$@"); then
         echo "Illegal arguments"
         return 1
     fi
     
     eval set -- "$PARSED_OPTIONS"
-    local index reason pci_domain
+    local index reason pci_domain warning
     while [ "$1" != "--" ]; do
         case "$1" in
-            -i|--index) index=$2;;
-            --reason) reason=$2;;
-            --pci-domain) pci_domain=$2;;
+            -i|--index) shift; index=$1;;
+            --reason) shift; reason=$1;;
+            --pci-domain) shift; pci_domain=$1;;
+            --warning) warning=true;;
         esac
-        shift 2
+        shift
     done
     shift
+
+    local headline
+    if [ "$warning" == true ]; then
+        headline='Warning for GPU'
+    else
+        headline='BAD GPU'
+    fi
 
     if [ -n "$index" ] && [ -n "$pci_domain" ]; then
         if [ "$pci_domain" != "$(nvidia-smi --query-gpu=pci.domain -i "$index" --format=csv,noheader)" ]; then
@@ -574,7 +582,7 @@ function report_bad_gpu {
     device=$(find -L "$DEVICES_PATH" -maxdepth 2 -mindepth 2 -iname "*${pci_domain#0x}*")
     local bus_id
     bus_id=$(basename "$(dirname "$device")")
-    print_log -e "\tBAD GPU ($reason) with bus Id $bus_id and serial number $serial"
+    print_log -e "\t$headline ($reason) with bus Id $bus_id and serial number $serial"
 }
 
 function check_page_retirement {
@@ -727,7 +735,7 @@ function check_cuda_bandwidth {
         device_to_host=$(awk '/^bandwidthTest-D2H-Pinned/{ print $4 }' "$results")
         if float_op "$host_to_device" '<' "$threshold" ||
            float_op "$device_to_host" '<' "$threshold"; then
-            report_bad_gpu --index="$(basename "$results" .csv)" --reason="Underperforming in CUDA BW test"
+            report_bad_gpu --index="$(basename "$results" .csv)" --reason="Underperforming in CUDA BW test" --warning
         fi
     done
 }

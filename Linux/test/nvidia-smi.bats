@@ -202,14 +202,17 @@ function teardown {
     assert_success
 
     assert_line --index 1 --partial 'Underperforming in CUDA BW test'
+    assert_line --index 1 --partial 'Warning for GPU'
     assert_line --index 1 --partial '00000000-0000-0000-0000-000000000002'
     assert_line --index 1 --partial '0000000000002'
 
     assert_line --index 2 --partial 'Underperforming in CUDA BW test'
+    assert_line --index 1 --partial 'Warning for GPU'
     assert_line --index 2 --partial '00000000-0000-0000-0000-00000000000a'
     assert_line --index 2 --partial '0000000000003'
 
     assert_line --index 3 --partial 'Underperforming in CUDA BW test'
+    assert_line --index 1 --partial 'Warning for GPU'
     assert_line --index 3 --partial '00000000-0000-0000-0000-00000000000d'
     assert_line --index 3 --partial '0000000000004'
 
