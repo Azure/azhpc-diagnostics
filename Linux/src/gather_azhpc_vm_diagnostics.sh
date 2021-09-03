@@ -706,20 +706,18 @@ function check_pci_bandwidth {
     done
 }
 
-function expected_cuda_bandwidth {
+function threshold_cuda_bandwidth {
     local vm_size="$1"
     case "$vm_size" in
-        Standard_ND96asr_v4) echo -n 32;;
+        Standard_ND96asr_v4) echo -n 20;;
         *) return 1;; # size not supported for gpu-numa tests
     esac
 }
 
 function check_cuda_bandwidth {
     local vm_size="$1"
-    local expected_bw tolerance_factor threshold
-    expected_bw=$(expected_cuda_bandwidth "$vm_size")
-    tolerance_factor=0.8
-    threshold=$(float_op "$expected_bw" '*' "$tolerance_factor")
+    local threshold
+    threshold=$(threshold_cuda_bandwidth "$vm_size")
 
     print_log -e "\tChecking for GPUs with low bandwidth"
     for results in "$DIAG_DIR"/Nvidia/bandwidthTest/*.csv; do
