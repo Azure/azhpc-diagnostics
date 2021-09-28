@@ -182,3 +182,37 @@ function setup() {
         assert [ $pkey_count -gt 0 ]
     done
 }
+
+@test "Confirm limits.conf structure" {
+    local linux_user_regexp='[a-z_][a-z0-9_-]{0,30}[a-z0-9_$-]?'
+    local domain_regexp="[*%]|[@%]?($linux_user_regexp)"
+    local type_regexp='soft|hard'
+    local item_regexp='core|data|fsize|memlock|nofile|rss|stack|cpu|nproc|as|maxlogins|maxsyslogins|priority|locks|sigpending|msgqueue|nice|rtprio'
+    local value_regexp='[0-9]+|unlimited'
+    local comment_regexp='#.*'
+    assert [ -f /etc/security/limits.conf ]
+    run cat /etc/security/limits.conf
+    for i in "${!lines[@]}"; do
+        assert_line --index $i --regexp "^(($comment_regexp)|($domain_regexp)\s+($type_regexp)\s+($item_regexp)\s+($value_regexp))\$"
+    done
+}
+
+@test "Confirm existence of zone_reclaim_mode" {
+    METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
+    if ! METADATA=$(curl --connect-timeout 1 -s -H Metadata:true "$METADATA_URL"); then
+        skip "Not on an azure vm"
+    fi
+
+    run cat /proc/sys/vm/zone_reclaim_mode
+    assert_success
+    assert_output --regexp '^[0-7]$'
+}
+
+@test "Confirm selinux config structure" {
+    if [ -f /etc/sysconfig/selinux ]; then
+        run grep -q '^SELINUX=' /etc/sysconfig/selinux
+        assert_success
+    else
+        skip 'no selinux config file'
+    fi
+}

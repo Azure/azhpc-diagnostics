@@ -117,7 +117,10 @@ sudo_basic_script_test() {
         if [[ "$filename" =~ ^Nvidia/stats_.*$ ]] ||
            [[ "$filename" =~ ^Nvidia/nvvs.log$ ]] ||
            [[ "$filename" =~ ^Infiniband/.* ]] ||
-           [[ "$filename" =~ ^VM.* ]]; then
+           [[ "$filename" =~ ^VM.* ]] ||
+           [[ "$filename" =~ ^Memory/ ]] ||
+           [[ "$filename" =~ ^Memory/zone_reclaim_mode ]] ||
+           [[ "$filename" =~ ^Memory/limits.conf ]]; then
             continue # leave behavior for these undefined
         fi
 
