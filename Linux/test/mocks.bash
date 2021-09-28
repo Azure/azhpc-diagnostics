@@ -125,6 +125,20 @@ function ibv_devinfo {
     fi
 }
 
+declare -a MOCK_SERVICES
+MOCK_SERVICES=(iptables cpupower walinuxagent)
+function systemctl {
+    local target_service="$2"
+    for service in "${MOCK_SERVICES[@]}"; do
+        if [ "$service" == "$target_service" ]; then
+            echo 'active'
+            return
+        fi
+    done
+    echo 'inactive'
+    return 
+}
+
 function hide_command {
     local command="$1"
     local command_path command_dir tmpdir command_type

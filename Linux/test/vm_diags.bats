@@ -53,6 +53,44 @@ function teardown {
     assert [ -f "$DIAG_DIR/VM/lsmod.txt" ]
 }
 
+@test "Check that active services are collected" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    MOCK_SERVICES=(iptables cpupower walinuxagent)
+
+    run run_vm_diags
+    assert_success
+    assert [ -s "$DIAG_DIR/VM/services" ]
+    run cat "$DIAG_DIR/VM/services"
+    assert_line --index 0 'iptables active'
+    assert_line --index 1 'firewalld inactive'
+    assert_line --index 2 'cpupower active'
+    assert_line --index 3 'waagent inactive'
+    assert_line --index 4 'walinuxagent active'
+}
+
+@test "Check that selinux status is collected" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    ETC_PATH=$(mktemp -d)
+    mkdir -p "$ETC_PATH/sysconfig"
+    cp "$BATS_TEST_DIRNAME/samples/selinux.good" "$ETC_PATH/sysconfig/selinux"
+
+    run run_vm_diags
+    assert_success
+    assert [ -s "$DIAG_DIR/VM/selinux" ]
+
+    run cat "$DIAG_DIR/VM/selinux"
+    assert_output 'SELINUX=permissive'
+}
+
+@test "Check that selinux status collection can be skipped" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    ETC_PATH=$(mktemp -d)
+
+    run run_vm_diags
+    assert_success
+    refute [ -s "$DIAG_DIR/VM/selinux" ]
+}
+
 @test "lsvmbus installed" {
     . "$BATS_TEST_DIRNAME/mocks.bash"
 
