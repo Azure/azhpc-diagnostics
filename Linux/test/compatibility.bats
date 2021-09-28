@@ -198,6 +198,59 @@ function setup() {
     done
 }
 
+@test "Confirm that ENDURE SKUs have at most one IB device" {
+    load ../src/gather_azhpc_vm_diagnostics.sh --no-update
+    METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
+    if ! METADATA=$(curl --connect-timeout 1 -s -H Metadata:true "$METADATA_URL"); then
+        skip "Not on an azure vm"
+    fi
+    VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    if is_endure_sku "$VM_SIZE"; then
+        local device_paths=("$SYSFS_PATH"/class/infiniband/*/ports/1)
+        assert [ ${#device_path[@]} -le 1 ]
+        if (( ${#device_path[@]} == 1 )); then
+            assert [ -d ${device_paths[0]} ]
+        fi
+    else
+        skip "Not on an ENDURE SKU"
+    fi
+}
+
+@test "Confirm that rate,state,phys_state are in sysfs for ENDURE IB devies" {
+    load ../src/gather_azhpc_vm_diagnostics.sh --no-update
+    METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
+    if ! METADATA=$(curl --connect-timeout 1 -s -H Metadata:true "$METADATA_URL"); then
+        skip "Not on an azure vm"
+    fi
+    VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    if is_endure_sku "$VM_SIZE"; then
+        local device_paths=("$SYSFS_PATH"/class/infiniband/*/ports/1)
+        if (( ${#device_path[@]} == 1 )); then
+            local device_path=${device_paths[0]}
+            assert [ -s "$device_path/rate" ]
+            assert [ -s "$device_path/state" ]
+            assert [ -s "$device_path/phys_state" ]
+        fi
+    else
+        skip "Not on an ENDURE SKU"
+    fi
+}
+
+@test "Confirm that ethtool is installed on ENDURE SKUs" {
+    load ../src/gather_azhpc_vm_diagnostics.sh --no-update
+    METADATA_URL='http://169.254.169.254/metadata/instance?api-version=2020-06-01'
+    if ! METADATA=$(curl --connect-timeout 1 -s -H Metadata:true "$METADATA_URL"); then
+        skip "Not on an azure vm"
+    fi
+    VM_SIZE=$(echo "$METADATA" | grep -o '"vmSize":"[^"]*"' | cut -d: -f2 | tr -d '"')
+    if is_endure_sku "$VM_SIZE"; then
+        run command -v ethtool
+        assert_success
+    else
+        skip "Not on an ENDURE SKU"
+    fi
+}
+
 @test "Confirm limits.conf structure" {
     local linux_user_regexp='[a-z_][a-z0-9_-]{0,30}[a-z0-9_$-]?'
     local domain_regexp="[*%]|[@%]?($linux_user_regexp)"

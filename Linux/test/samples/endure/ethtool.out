@@ -1,0 +1,17 @@
+Settings for eth1:
+	Supported ports: [ ]
+	Supported link modes:   Not reported
+	Supported pause frame use: No
+	Supports auto-negotiation: No
+	Advertised link modes:  Not reported
+	Advertised pause frame use: No
+	Advertised auto-negotiation: No
+	Speed: 54000Mb/s
+	Duplex: Full
+	Port: Other
+	PHYAD: 0
+	Transceiver: internal
+	Auto-negotiation: off
+	Current message level: 0x000000f7 (247)
+			       drv probe link ifdown ifup rx_err tx_err
+	Link detected: yes
