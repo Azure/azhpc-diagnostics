@@ -13,10 +13,14 @@
 #   - uname.txt
 #   - dmidecode.txt
 #   - journald.log|syslog|messages
+#   - services
+#   - selinux
 # - CPU
 #   - lscpu.txt
 # - Memory
 #   - stream.txt
+#   - ulimit
+#   - zone_reclaim_mode
 # - Infiniband
 #   - ib-vmext-status
 #   - ibstat.txt
@@ -52,6 +56,8 @@ LSVMBUS_URL='https://raw.githubusercontent.com/torvalds/linux/master/tools/hv/ls
 HPC_DIAG_URL='https://raw.githubusercontent.com/Azure/azhpc-diagnostics/main/Linux/src/gather_azhpc_vm_diagnostics.sh'
 SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 SYSFS_PATH=/sys # store as a variable so it is mockable
+ETC_PATH=/etc
+PROC_PATH=/proc
 
 NVIDIA_PCI_ID=10de
 GPU_PCI_CLASS_ID=0302
@@ -60,7 +66,7 @@ GPU_PCI_CLASS_ID=0302
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210809 # update upon each release
+RELEASE_DATE=20210927 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -319,6 +325,22 @@ run_vm_diags() {
     lsmod >"$DIAG_DIR/VM/lsmod.txt"
 
     fetch_syslog
+    
+    local services=(iptables firewalld cpupower waagent walinuxagent)
+    if systemctl >/dev/null; then
+        for service in "${services[@]}"; do
+            print_log -e "\tWriting status of service $service {output}/VM/services"
+            echo "$service $(systemctl is-active "$service")" >> "$DIAG_DIR/VM/services"
+        done
+    fi
+
+    if [ -f $ETC_PATH/sysconfig/selinux ]; then
+        print_log -e "\tWriting status of selinux {output}/VM/selinux"
+        grep -V '^[[:space]]#' $ETC_PATH/sysconfig/selinux |
+        grep 'SELINUX=\(enforcing\|permissive\|disabled\)' $ETC_PATH/sysconfig/selinux |
+        head -1 >"$DIAG_DIR/VM/selinux"
+        [ -s "$DIAG_DIR/VM/selinux" ] || rm "$DIAG_DIR/VM/selinux"
+    fi
 }
 
 run_cpu_diags() {
@@ -328,7 +350,7 @@ run_cpu_diags() {
     lscpu >"$DIAG_DIR/CPU/lscpu.txt"
 }
 
-run_memory_diags() {
+run_stream() {
     local STREAM_PATH="$DIAG_DIR/Memory/stream.tgz"
     local cpu_list
     cpu_list=$(get_cpu_list "$VM_SIZE")
@@ -336,9 +358,6 @@ run_memory_diags() {
         print_log -e "\tCurrent VM Size is not supported for stream tests. Skipping"
         return 1
     fi
-
-    # Stream Memory tests
-    mkdir -p "$DIAG_DIR/Memory"
 
     # Download precompiled stream library
     print_log -e "\tDownloading precompiled Stream binary from Azure HPC Storage"
@@ -361,6 +380,17 @@ run_memory_diags() {
     else
         print_log -e "\tUnable to download stream memory benchmark"
     fi
+}
+
+run_memory_diags() {
+    mkdir -p "$DIAG_DIR/Memory"
+    cp $ETC_PATH/security/limits.conf "$DIAG_DIR/Memory"
+    cp $PROC_PATH/sys/vm/zone_reclaim_mode "$DIAG_DIR/Memory"
+    if [ "$MEM_LEVEL" -gt 0 ]; then
+        print_log ''
+        print_log "Running Memory Performance Test"
+        run_stream
+    fi 
 }
 
 run_infiniband_diags() {
@@ -669,6 +699,37 @@ function check_pkeys {
     done
 }
 
+function check_tuning() {
+    print_log -e "\tChecking VM configuration against recommended settings."
+    if [ "$(cat "$DIAG_DIR/Memory/zone_reclaim_mode")" -ne 1 ]; then
+        print_log 'Set zone_reclaim_mode to 1'
+    fi
+
+    awk '/^\*/{
+        switch ($3) {
+            case "memlock":
+                desired="unlimited"
+                break
+            case "nofile":
+                desired=65535
+                break
+            case "stack":
+                desired="unlimited"
+            default:
+                next
+        }
+        if ($4 != desired) {
+            printf("Consider setting ulimit %s to %s\n", $3, desired)
+        }
+    }' "$DIAG_DIR/Memory/limits.conf" | sort | uniq | while read -r warning; do
+        print_log -e "\t$warning"
+    done
+
+    if [ -s "$DIAG_DIR/VM/selinux" ] && [ "$(cut -d= -f2 "$DIAG_DIR/VM/selinux")" = 'enforcing' ]; then
+        print_log -e "\tConsider disabling selinux to avoid interfering with MPI"
+    fi
+}
+
 ####################################################################################################
 # End Helper Functions
 ####################################################################################################
@@ -785,11 +846,9 @@ function main {
     print_log "Collecting CPU Info"
     run_cpu_diags
 
-    if [ "$MEM_LEVEL" -gt 0 ]; then
-        print_log ''
-        print_log "Running Memory Performance Test"
-        run_memory_diags
-    fi
+    print_log ''
+    print_log "Collecting Memory Info"
+    run_memory_diags
 
     if is_infiniband_sku "$VM_SIZE"; then
         print_log ''
@@ -827,7 +886,13 @@ function main {
     if is_infiniband_sku "$VM_SIZE"; then
         check_pkeys
     fi
-                
+
+    if [ "$TUNING" = true ]; then
+        print_log ''
+        print_log 'Checking for opportunities for performance tuning'
+        check_tuning
+    fi
+
     print_log ''
 
     set +x
@@ -856,7 +921,7 @@ DIAG_DIR_LOC="$SCRIPT_DIR"
 RUNTIME_OPTIONS=$*
 
 # Read in options
-OPTIONS_LIST='dir:,help,gpu-level:,mem-level:,no-update,offline,version'
+OPTIONS_LIST='dir:,help,gpu-level:,mem-level:,no-update,offline,tuning,version'
 if ! PARSED_OPTIONS=$(getopt -n "$0"  -o d:hV --long "$OPTIONS_LIST"  -- "$@"); then
     echo "$HELP_MESSAGE"
     exit 1
@@ -883,6 +948,7 @@ while [ "$1" != "--" ]; do
         ;;
     --no-update) DISABLE_UPDATE=true;;
     --offline) OFFLINE=true;;
+    --tuning) TUNING=true;;
     -V|--version) DISPLAY_VERSION=true;;
   esac
   shift

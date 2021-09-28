@@ -78,8 +78,12 @@ Note that not all these files will be generated on all runs. What appears below 
 |   -- dmidecode.txt
 |   -- lsmod.txt
 |   -- journald.log|syslog|messages
+|   -- services
+|   -- selinux
 |-- CPU
 |   -- lscpu.txt
+|   -- ulimit
+|   -- zone_reclaim_mode
 |-- Memory
 |   -- stream.txt
 |-- Infiniband
@@ -114,6 +118,10 @@ Note that not all these files will be generated on all runs. What appears below 
 | ipconfig | ipconfig | VM/ipconfig.txt | Checking TCP/IP configuration | |
 | sysctl | sysctl | VM/sysctl.txt | Checking kernel parameters | |
 | uname | uname | VM/uname.txt | Checking system information | |
+| systemd | systemctl | VM/services | Checking for certain active services (tuning only) | |
+| selinux | cp /etc/sysconfig/selinux | VM/selinux | Checking for selinux activity (tuning only) | |
+| ulimit | cp /etc/security/limits.conf | Memory/ulimit | Checking for default user resource limits (tuning only) | |
+| - | cp /proc/sys/vm/zone_reclaim_mode | Memory/zone_reclaim_mode | Checking NUMA memory reclamation policy (tuning only) | |
 | dmidecode | dmidecode | VM/dmidecode.txt | DMI table dump (info on hardware components) | |
 | lsmod | lsmod | VM/lsmod.txt | List of active kernel modules | |
 | lscpu | lscpu | CPU/lscpu.txt | Information about the system CPU architecture | |
