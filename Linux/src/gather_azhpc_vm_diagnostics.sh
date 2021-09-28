@@ -27,6 +27,10 @@
 #   - ibstatus.out
 #   - ibv_devinfo.out
 #   - pkeys
+#   - ethtool.out (ENDURE)
+#   - rate (ENDURE)
+#   - state (ENDURE)
+#   - phys_state (ENDURE)
 # - Nvidia GPU
 #   - nvidia-bug-report.log.gz
 #   - nvidia-vmext-status
@@ -151,6 +155,10 @@ prompt() {
 
 is_infiniband_sku() {
     echo "$1" | cut -d_ -f2 | grep -q r
+}
+
+is_endure_sku() {
+    echo "$1" | grep -Eiq '^Standard_(H16m?r|NC24r)'
 }
 
 is_nvidia_sku() {
@@ -423,6 +431,23 @@ run_infiniband_diags() {
 
         print_log -e "\tWriting Infiniband device info to {output}/Infiniband/ibv_devinfo.out"
         ibv_devinfo -v > "$DIAG_DIR/Infiniband/ibv_devinfo.out" 2>&1
+    elif is_endure_sku "$VM_SIZE"; then
+        print_log -e "\tNon-SR-IOV VM size detected."
+        local device_paths=("$SYSFS_PATH"/class/infiniband/*/ports/1)
+        if ip address show eth1 >/dev/null && [ ${#device_paths[@]} -eq 1 ] && [ -d "${device_paths[0]}" ]; then
+            local device_path=${device_paths[0]}
+            mkdir -p "$DIAG_DIR/Infiniband"
+            print_log -e "\tCopying $device_path/state to {output}/Infiniband/state"
+            cp "$device_path/state" "$DIAG_DIR/Infiniband"
+            print_log -e "\tCopying $device_path/rate to {output}/Infiniband/rate"
+            cp "$device_path/rate" "$DIAG_DIR/Infiniband"
+            print_log -e "\tCopying $device_path/phys_state to {output}/Infiniband/phys_state"
+            cp "$device_path/phys_state" "$DIAG_DIR/Infiniband"
+            ethtool eth1 >"$DIAG_DIR/Infiniband/ethtool.out"
+        else
+            print_log "ENDURE : No IB devices found"
+        fi
+        ib_interfaces=$(basename "$SYSFS_PATH"/class/infiniband/*)
     else
         print_log -e "\tNo Infiniband Driver Detected"
     fi
@@ -899,7 +924,7 @@ function main {
         fi
     fi
 
-    if is_infiniband_sku "$VM_SIZE"; then
+    if is_infiniband_sku "$VM_SIZE" && ! is_endure_sku "$VM_SIZE"; then
         check_pkeys
     fi
 

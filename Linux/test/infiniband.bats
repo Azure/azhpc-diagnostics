@@ -126,3 +126,21 @@ function teardown {
     assert_output --partial "Could not find pkey 0 for device mlx5_ib0"
     refute_output --partial "Could not find pkey 1 for device mlx5_ib0"
 }
+
+@test "Confirm ENDURE IB files collection" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    mkdir -p "$SYSFS_PATH/class/infiniband/mlx4_0/ports/1"
+    cp "$BATS_TEST_DIRNAME/samples/endure/rate" "$SYSFS_PATH/class/infiniband/mlx4_0/ports/1"
+    cp "$BATS_TEST_DIRNAME/samples/endure/state" "$SYSFS_PATH/class/infiniband/mlx4_0/ports/1"
+    cp "$BATS_TEST_DIRNAME/samples/endure/phys_state" "$SYSFS_PATH/class/infiniband/mlx4_0/ports/1"
+
+    hide_command ibstat
+    VM_SIZE='Standard_H16r'
+    run run_infiniband_diags
+    assert cmp "$BATS_TEST_DIRNAME/samples/endure/rate" "$SYSFS_PATH/class/infiniband/mlx4_0/ports/1/rate"
+    assert cmp "$BATS_TEST_DIRNAME/samples/endure/state" "$SYSFS_PATH/class/infiniband/mlx4_0/ports/1/state"
+    assert cmp "$BATS_TEST_DIRNAME/samples/endure/phys_state" "$SYSFS_PATH/class/infiniband/mlx4_0/ports/1/phys_state"
+
+    assert_success
+
+}
