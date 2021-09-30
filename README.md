@@ -80,6 +80,7 @@ Note that not all these files will be generated on all runs. What appears below 
 |   -- journald.log|syslog|messages
 |   -- services
 |   -- selinux
+|   -- hyperv/kvp_pool*.txt
 |-- CPU
 |   -- lscpu.txt
 |   -- ulimit
@@ -120,6 +121,7 @@ Note that not all these files will be generated on all runs. What appears below 
 | Azure VM Agent | cp /var/log/waagent.log | waagent.log | Logs from the Azure VM Agent | |
 | lspci | lspci | VM/lspci.txt | Info on installed PCI devices | |
 | lsvmbus | lsvmbus | VM/lsvmbus.log | Displays devices attached to the Hyper-V VMBus | |
+| Hyper-V KVP | custom-made | VM/hyperv/kvp_pool*.txt | Exposes certain Windows Registry data from the Azure Host | |
 | ipconfig | ipconfig | VM/ipconfig.txt | Checking TCP/IP configuration | |
 | sysctl | sysctl | VM/sysctl.txt | Checking kernel parameters | |
 | uname | uname | VM/uname.txt | Checking system information | |
