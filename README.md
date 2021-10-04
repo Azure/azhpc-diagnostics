@@ -38,6 +38,10 @@ To run the script, run the following command, replacing {repo-root} with the nam
 sudo bash {repo-root}/Linux/src/gather_azhpc_vm_diagnostics.sh
 ```
 
+## PerfInsights for Linux Integration
+
+Alternatively, a version of this tool is included in [PerfInsights for Linux](https://docs.microsoft.com/en-us/troubleshoot/azure/virtual-machines/how-to-use-perfinsights-linux) under the HPC scenario. Running this scenario directly from the Azure Portal is not supported at this time, so PerfInsights must be downloaded and run from the command line, but the results of this tool are included in the report generated.
+
 # Usage
 This section describes the output of the script and the configuration options available.
 
