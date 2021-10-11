@@ -73,6 +73,7 @@ CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,6
 RELEASE_DATE=20211028 # update upon each release
 COMMIT_HASH=$( 
     (
+        command -v git >/dev/null &&
         cd "$SCRIPT_DIR" &&
         git config --get remote.origin.url | grep -q 'Azure/azhpc-diagnostics.git$' &&
         git rev-parse HEAD 2>/dev/null
