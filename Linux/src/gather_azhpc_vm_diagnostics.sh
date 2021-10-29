@@ -23,9 +23,9 @@
 #   - zone_reclaim_mode
 # - Infiniband
 #   - ib-vmext-status
-#   - ibstat.txt
+#   - ibstat.out
+#   - ibstatus.out
 #   - ibv_devinfo.out
-#   - ibv_devinfo.err
 #   - pkeys
 # - Nvidia GPU
 #   - nvidia-bug-report.log.gz
@@ -400,14 +400,30 @@ run_infiniband_diags() {
         cp /var/log/azure/ib-vmext-status "$DIAG_DIR/Infiniband"
     fi
 
-    if command -v ibstat >/dev/null; then
+    local ib_interfaces
+    if command -v ibstatus >/dev/null; then
         mkdir -p "$DIAG_DIR/Infiniband"
 
-        print_log -e "\tQuerying Infiniband device status, writing to {output}/Infiniband/ibstat.txt"
-        ibstat > "$DIAG_DIR/Infiniband/ibstat.txt"
+        print_log -e "\tQuerying Infiniband device status, writing to {output}/Infiniband/ibstatus.out"
+        ibstatus > "$DIAG_DIR/Infiniband/ibstatus.out"
 
-        print_log -e "\tWriting Infiniband device info to {output}/Infiniband/ibv_devinfo.txt"
-        ibv_devinfo -v > "$DIAG_DIR/Infiniband/ibv_devinfo.txt" 2>&1
+        local ib_interfaces
+        ib_interfaces=$(
+            awk '
+            /Infiniband device/ { device_name=$3 }
+            /link_layer:\s+InfiniBand/ { print device_name }' "$DIAG_DIR/Infiniband/ibstatus.out" | tr -d "'"
+        )
+        if command -v ibstat >/dev/null; then
+            print_log -e "\tWriting ibstat info for device(s) $(echo "$ib_interfaces" | xargs) to {output}/Infiniband/ibstat.out"
+            for ib_interface in $ib_interfaces; do
+                ibstat "$ib_interface"
+            done >"$DIAG_DIR/Infiniband/ibstat.out"
+        else
+            print_log -e "\tibstat not found."
+        fi
+
+        print_log -e "\tWriting Infiniband device info to {output}/Infiniband/ibv_devinfo.out"
+        ibv_devinfo -v > "$DIAG_DIR/Infiniband/ibv_devinfo.out" 2>&1
     else
         print_log -e "\tNo Infiniband Driver Detected"
     fi

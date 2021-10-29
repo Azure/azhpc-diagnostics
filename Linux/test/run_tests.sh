@@ -43,8 +43,9 @@ DCGM_FILENAMES="Nvidia/dcgm-diag.log"
 MEMORY_FILENAMES="Memory/
 Memory/stream.txt"
 
-INFINIBAND_FILENAMES="Infiniband/ibstat.txt
-Infiniband/ibv_devinfo.txt"
+INFINIBAND_FILENAMES="Infiniband/ibstat.out
+Infiniband/ibstatus.out
+Infiniband/ibv_devinfo.out"
 
 INFINIBAND_EXT_FILENAMES="Infiniband/ib-vmext-status"
 

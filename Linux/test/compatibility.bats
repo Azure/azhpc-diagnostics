@@ -167,6 +167,21 @@ function setup() {
     done
 }
 
+@test "Confirm that ibstatus output has device name lines followed by link_layer lines as expected" {
+    if ! ibstatus >/dev/null 2>/dev/null; then
+        skip "no functioning installation of lspci"
+    fi
+
+    run awk '
+        BEGIN { expecting="devicename"}
+        /Infiniband device/ { if (expecting != "devicename") {exit(1)} else { expecting="link_layer"} }
+        /link_layer:\s+(Ethernet|InfiniBand)/ { if (expecting != "link_layer") {exit(1)} else { expecting="devicename"} }
+        END { if (expecting != "devicename") { exit(1) } }
+    ' <(ibstatus)
+
+    assert_success
+}
+
 @test "Confirm that pkeys are where we think" {
     if ! [ -d /sys/class/infiniband ]; then
         skip "no infiniband section of sysfs"

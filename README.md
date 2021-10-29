@@ -88,8 +88,9 @@ Note that not all these files will be generated on all runs. What appears below 
 |   -- stream.txt
 |-- Infiniband
 |   -- ib-vmext.log
-|   -- ibstat.txt
-|   -- ibv_devinfo.txt
+|   -- ibstat.out
+|   -- ibstatus.out
+|   -- ibv_devinfo.out
 |   -- pkeys/*
 |-- Nvidia
     -- nvidia-bug-report.log.gz
@@ -126,8 +127,9 @@ Note that not all these files will be generated on all runs. What appears below 
 | lsmod | lsmod | VM/lsmod.txt | List of active kernel modules | |
 | lscpu | lscpu | CPU/lscpu.txt | Information about the system CPU architecture | |
 | stream | stream_zen_double | Memory/stream.txt | The stream benchmark suite (AMD Only) | [Stream License](http://www.cs.virginia.edu/stream/FTP/Code/LICENSE.txt)
-| ibstat | ibstat | Infiniband/ibstat.txt | Mellanox OFED command for checking Infiniband status | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
-| ibv_devinfo | ibv_devinfo | Infiniband/ibv_devinfo.txt | Mellanox OFED commnd for checking Infiniband Device info | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
+| ibstat | ibstat | Infiniband/ibstat.out | Mellanox OFED command for checking Infiniband status | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
+| ibstatus | ibstatus | Infiniband/ibstat.out | Lightweight Mellanox OFED command for checking Infiniband status | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
+| ibv_devinfo | ibv_devinfo | Infiniband/ibv_devinfo.out | Mellanox OFED commnd for checking Infiniband Device info | [MOFED End-User Agreement](https://www.mellanox.com/page/mlnx_ofed_eula#:~:text=11%20Mellanox%20OFED%20Software%3A%20Third%20Party%20Free%20Software,2-clause%20FreeBSD%20License%20%2018%20more%20rows%20) |
 | Partition Key | cp /sys/class/infiniband/.../pkeys/... | Infiniband/.../pkeys/... | Checks the configured Infinband Partition Keys |
 | Infiniband Driver Extension Logs | cp /var/log/azure/ib-vmext-status | Infiniband/ib-vmext-status | Logs from the Infiniband Driver Extension |
 | NVIDIA Bug Report | nvidia-bug-report.sh | Nvidia/nvidia-bug-report.log.gz | A script that Nvidia has customers run when reporting hardware problems. | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
