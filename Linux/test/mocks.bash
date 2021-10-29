@@ -117,6 +117,10 @@ function ibstat {
     echo "infiniband results"
 }
 
+function ibstatus {
+    cat "$BATS_TEST_DIRNAME/samples/ibstatus.out"
+}
+
 function ibv_devinfo {
     if [ "$1" == "-v" ]; then
         echo "full output"

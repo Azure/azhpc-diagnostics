@@ -43,13 +43,32 @@ function teardown {
     run run_infiniband_diags
     assert_success
 
-    run cat "$DIAG_DIR/Infiniband/ibstat.txt"
+    run cat "$DIAG_DIR/Infiniband/ibstatus.out"
     assert_success
     assert_output
 
-    run cat "$DIAG_DIR/Infiniband/ibv_devinfo.txt"
+    run cat "$DIAG_DIR/Infiniband/ibstat.out"
+    assert_success
+    assert_output
+
+    run cat "$DIAG_DIR/Infiniband/ibv_devinfo.out"
     assert_success
     assert_output "full output"
+}
+
+@test "Confirm that lack of ibstatus is noticed" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+
+    hide_command ibstatus
+
+    run run_infiniband_diags
+    assert_success
+
+    assert_output --partial "No Infiniband Driver Detected"
+
+    refute [ -f "$DIAG_DIR/Infiniband/ibstatus.out" ]
+    refute [ -f "$DIAG_DIR/Infiniband/ibstat.out" ]
+    refute [ -f "$DIAG_DIR/Infiniband/ibv_devinfo.out" ]
 }
 
 @test "Confirm that lack of ibstat is noticed" {
@@ -60,10 +79,11 @@ function teardown {
     run run_infiniband_diags
     assert_success
 
-    assert_output --partial "No Infiniband Driver Detected"
+    assert_output --partial "ibstat not found"
 
-    refute [ -f "$DIAG_DIR/Infiniband/ibstat.txt" ]
-    refute [ -f "$DIAG_DIR/Infiniband/ibv_devinfo.txt" ]
+    assert [ -f "$DIAG_DIR/Infiniband/ibstatus.out" ]
+    refute [ -f "$DIAG_DIR/Infiniband/ibstat.out" ]
+    assert [ -f "$DIAG_DIR/Infiniband/ibv_devinfo.out" ]
 }
 
 @test "Confirm that ib-vmext-status gets collected" {
