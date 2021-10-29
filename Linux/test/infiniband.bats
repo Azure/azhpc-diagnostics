@@ -11,13 +11,10 @@ function setup {
 
     SYSFS_PATH=$(mktemp -d)
     
-    local IB_DEVICES_PATH="$SYSFS_PATH/class/infiniband"
-    mkdir -p "$IB_DEVICES_PATH/mlx4_0/ports/1/pkeys"
-    echo 0xffff > "$IB_DEVICES_PATH/mlx4_0/ports/1/pkeys/0"
-    echo 0x0001 > "$IB_DEVICES_PATH/mlx4_0/ports/1/pkeys/1"
-    mkdir -p "$IB_DEVICES_PATH/mlx5_1/ports/1/pkeys"
-    echo 0xffff > "$IB_DEVICES_PATH/mlx5_1/ports/1/pkeys/0"
-    echo 0x0001 > "$IB_DEVICES_PATH/mlx5_1/ports/1/pkeys/1"
+    IB_DEVICES_PATH="$SYSFS_PATH/class/infiniband"
+    mkdir -p "$IB_DEVICES_PATH/mlx5_ib0/ports/1/pkeys"
+    echo 0xffff > "$IB_DEVICES_PATH/mlx5_ib0/ports/1/pkeys/0"
+    echo 0x0001 > "$IB_DEVICES_PATH/mlx5_ib0/ports/1/pkeys/1"
 }
 
 function teardown {
@@ -25,14 +22,16 @@ function teardown {
 }
 
 @test "Confirm that pkeys get collected" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+
     run run_infiniband_diags
     assert_success
 
-    run cat "$DIAG_DIR/Infiniband/mlx4_0/pkeys/0"
+    run cat "$DIAG_DIR/Infiniband/mlx5_ib0/pkeys/0"
     assert_success
     assert_output 0xffff
 
-    run cat "$DIAG_DIR/Infiniband/mlx4_0/pkeys/1"
+    run cat "$DIAG_DIR/Infiniband/mlx5_ib0/pkeys/1"
     assert_success
     assert_output 0x0001
 }
@@ -122,17 +121,8 @@ function teardown {
     run check_pkeys
     refute_output
 
-    rm "$DIAG_DIR/Infiniband/mlx4_0/pkeys/0"
+    rm "$DIAG_DIR/Infiniband/mlx5_ib0/pkeys/0"
     run check_pkeys
-    assert_output --partial "Could not find pkey 0 for device mlx4_0"
-    refute_output --partial "Could not find pkey 1 for device mlx4_0"
-    refute_output --partial "Could not find pkey 0 for device mlx5_1"
-    refute_output --partial "Could not find pkey 1 for device mlx5_1"
-
-    rm "$DIAG_DIR/Infiniband/mlx5_1/pkeys/1"
-    run check_pkeys
-    assert_output --partial "Could not find pkey 0 for device mlx4_0"
-    refute_output --partial "Could not find pkey 1 for device mlx4_0"
-    refute_output --partial "Could not find pkey 0 for device mlx5_1"
-    assert_output --partial "Could not find pkey 1 for device mlx5_1"
+    assert_output --partial "Could not find pkey 0 for device mlx5_ib0"
+    refute_output --partial "Could not find pkey 1 for device mlx5_ib0"
 }

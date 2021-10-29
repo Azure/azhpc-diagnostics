@@ -66,7 +66,7 @@ GPU_PCI_CLASS_ID=0302
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20210927 # update upon each release
+RELEASE_DATE=20211028 # update upon each release
 COMMIT_HASH=$( 
     (
         cd "$SCRIPT_DIR" &&
@@ -407,7 +407,6 @@ run_infiniband_diags() {
         print_log -e "\tQuerying Infiniband device status, writing to {output}/Infiniband/ibstatus.out"
         ibstatus > "$DIAG_DIR/Infiniband/ibstatus.out"
 
-        local ib_interfaces
         ib_interfaces=$(
             awk '
             /Infiniband device/ { device_name=$3 }
@@ -429,12 +428,13 @@ run_infiniband_diags() {
     fi
 
     print_log -e "\tChecking for Infiniband pkeys"
-    for dir in "$SYSFS_PATH"/class/infiniband/*; do
-        [ -d "$dir" ] || continue
-
-        print_log -e "\tChecking for Infiniband pkeys in $dir"
-        local device
-        device=$(basename "$dir")
+    for device in $ib_interfaces; do
+        local dir="$SYSFS_PATH/class/infiniband/$device"
+        if ! [ -d "$dir" ]; then
+            print_log "\tDevice $device not showing up in $SYSFS_PATH/class/infiniband/"
+        else
+            print_log -e "\tChecking for Infiniband pkeys in $dir"
+        fi
         mkdir -p "$DIAG_DIR/Infiniband/$device/pkeys"
 
         local pkey_count
