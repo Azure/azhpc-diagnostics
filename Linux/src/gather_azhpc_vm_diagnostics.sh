@@ -975,7 +975,7 @@ while [ "$1" != "--" ]; do
     -d|--dir)
         shift
         validate_out_dir "$1"
-        DIAG_DIR_LOC="$1"
+        DIAG_DIR_LOC=$(realpath "$1")
         ;;
     --gpu-level) 
         shift
