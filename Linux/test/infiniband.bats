@@ -36,6 +36,25 @@ function teardown {
     assert_output 0x0001
 }
 
+@test "Confirm that pkeys get collected even when \$DIAG_DIR needs resolving" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+
+    # introduce some dots to the DIAG_DIR path without changing it
+    DOTDOTS_TO_ROOT=$(pwd | sed 's/[^/]\+/../g' | rev)
+    DIAG_DIR="$DOTDOTS_TO_ROOT$(realpath $DIAG_DIR)"
+
+    run run_infiniband_diags
+    assert_success
+
+    run cat "$DIAG_DIR/Infiniband/mlx5_ib0/pkeys/0"
+    assert_success
+    assert_output 0xffff
+
+    run cat "$DIAG_DIR/Infiniband/mlx5_ib0/pkeys/1"
+    assert_success
+    assert_output 0x0001
+}
+
 @test "Confirm that ib tools get run" {
     . "$BATS_TEST_DIRNAME/mocks.bash"
 
