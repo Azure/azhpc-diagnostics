@@ -509,7 +509,7 @@ run_infiniband_diags() {
             mkdir -p "$DIAG_DIR/Infiniband"
             print_log -e "\tFound $pkey_count pkeys in $dir; copying them to {output}/Infiniband/$device/pkeys/"
             find "$dir/" -path '*pkeys/*' \
-                -execdir cp {} "$DIAG_DIR/Infiniband/$device/pkeys" \;
+                -execdir cp {} "$(realpath "$DIAG_DIR")/Infiniband/$device/pkeys" \;
         else
             print_log -e "\tFound no pkeys in $dir"
         fi
