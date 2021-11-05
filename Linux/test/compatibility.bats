@@ -284,3 +284,25 @@ function setup() {
         skip 'no selinux config file'
     fi
 }
+
+@test "Confirm kvp file structure" {
+    for file in /var/lib/hyperv/*; do
+        if ! [ -f "$file" ]; then
+            skip "no kvp files found"
+        fi
+        # files should be binary "data" files
+        run file "$file" --brief
+        assert_output 'data'
+
+        # file length must be divisible by record size
+        RECORD_LEN=2560
+        file_len=$(cat "$file" | wc --bytes)
+        assert [ $(( file_len % RECORD_LEN )) -eq 0 ]
+        
+        # every byte must be either a readable character or \0
+        run od "$file" --format=c --width=1
+        for i in "${!lines[@]}"; do
+            assert_line --index $i --regexp '(\\0| [ -~])$'
+        done
+    done
+}

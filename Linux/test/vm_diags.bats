@@ -91,6 +91,44 @@ function teardown {
     refute [ -s "$DIAG_DIR/VM/selinux" ]
 }
 
+@test "Check that kvp parsing generates readable text" {
+    outfile=$(mktemp)
+    read_kvp "$BATS_TEST_DIRNAME/samples/hyperv/.kvp_pool_1" >"$outfile"
+    run file --brief "$outfile"
+    assert_output 'ASCII text'
+}
+
+@test "Check that kvp parsing does something reasonable for empty files" {
+    outfile=$(mktemp)
+    read_kvp "$BATS_TEST_DIRNAME/samples/hyperv/.kvp_pool_0" >"$outfile"
+    
+    run file --brief "$outfile"
+    assert_output 'empty'
+}
+
+@test "Check that kvp parsing gets run" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    VAR_PATH=$(mktemp -d)
+    
+    mkdir -p "$VAR_PATH/lib/"
+    cp -r $BATS_TEST_DIRNAME/samples/hyperv "$VAR_PATH/lib/"
+
+    run run_vm_diags
+    assert_output --partial "Hyper-V KVP data"
+    assert_success
+    
+    run file --brief "$DIAG_DIR/VM/hyperv/kvp_pool_0.txt"
+    assert_output 'empty'
+    run file --brief "$DIAG_DIR/VM/hyperv/kvp_pool_1.txt"
+    assert_output 'ASCII text'
+    run file --brief "$DIAG_DIR/VM/hyperv/kvp_pool_2.txt"
+    assert_output 'empty'
+    run file --brief "$DIAG_DIR/VM/hyperv/kvp_pool_3.txt"
+    assert_output 'ASCII text'
+    run file --brief "$DIAG_DIR/VM/hyperv/kvp_pool_4.txt"
+    assert_output 'empty'
+}
+
 @test "lsvmbus installed" {
     . "$BATS_TEST_DIRNAME/mocks.bash"
 

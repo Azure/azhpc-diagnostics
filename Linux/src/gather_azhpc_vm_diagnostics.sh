@@ -15,6 +15,7 @@
 #   - journald.log|syslog|messages
 #   - services
 #   - selinux
+#   - hyperv/kvp_pool*.txt
 # - CPU
 #   - lscpu.txt
 # - Memory
@@ -62,6 +63,7 @@ SCRIPT_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 SYSFS_PATH=/sys # store as a variable so it is mockable
 ETC_PATH=/etc
 PROC_PATH=/proc
+VAR_PATH=/var
 
 NVIDIA_PCI_ID=10de
 GPU_PCI_CLASS_ID=0302
@@ -70,7 +72,7 @@ GPU_PCI_CLASS_ID=0302
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20211029 # update upon each release
+RELEASE_DATE=20211030 # update upon each release
 COMMIT_HASH=$( 
     (
         command -v git >/dev/null &&
@@ -152,6 +154,20 @@ prompt() {
         esac
     done
     return 1
+}
+
+read_binary_record() {
+    od --skip-bytes="$1" --read-bytes="$2" --format=c --width=1 |
+    awk '{
+        if ($2 != "\\0") {
+            printf("%s",$2)
+        } else {
+            printf("\n"); exit
+        }
+    }
+    END {
+        printf("\n")
+        }'
 }
 
 is_infiniband_sku() {
@@ -300,6 +316,22 @@ fetch_syslog() {
     fi
 }
 
+read_kvp() {
+    local filename="$1"
+    local KEY_BYTELEN=512
+    local VALUE_BYTELEN=2048
+    local RECORD_BYTELEN=$(( KEY_BYTELEN + VALUE_BYTELEN ))
+    local file_len
+    file_len=$(wc --bytes "$filename" | cut -d' ' -f1)
+    local record_count=$(( file_len / RECORD_BYTELEN ))
+    local key value
+    for i in $(seq 0 $(( record_count - 1 ))); do
+        key=$(read_binary_record $(( RECORD_BYTELEN * i )) $KEY_BYTELEN <"$filename")
+        value=$(read_binary_record $(( RECORD_BYTELEN * i + KEY_BYTELEN )) $VALUE_BYTELEN <"$filename")
+        printf "Key: %s; Value: %s\n" "$key" "$value"
+    done
+}
+
 run_vm_diags() {
     mkdir -p "$DIAG_DIR/VM"
 
@@ -334,6 +366,14 @@ run_vm_diags() {
     lsmod >"$DIAG_DIR/VM/lsmod.txt"
 
     fetch_syslog
+
+    mkdir -p "$DIAG_DIR/VM/hyperv"
+    for file in "$VAR_PATH"/lib/hyperv/.kvp_pool*; do
+        local filename
+        filename=$(basename "$file" | sed 's/^\.//g')
+        print_log -e "\tDumping Hyper-V KVP data from $file to {output}/VM/kvp/$filename.txt"
+        read_kvp "$file" >"$DIAG_DIR/VM/hyperv/$filename.txt"
+    done
     
     local services=(iptables firewalld cpupower waagent walinuxagent)
     if systemctl >/dev/null; then
