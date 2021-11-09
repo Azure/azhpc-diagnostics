@@ -1,0 +1,38 @@
+name: Increment HPCDiag version number
+on:
+  push:
+    branches:
+      - main
+jobs:
+  increment_version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: increment version number in main script
+        run: |
+          last_versioned_commit=$(git blame Linux/src/gather_azhpc_vm_diagnostics.sh | grep RELEASE_DATE= | cut -d' ' -f1)
+          if ! git diff --exit-code "$last_versioned_commit" -- Linux/src/gather_azhpc_vm_diagnostics.sh; then
+            old_date=$(awk '/RELEASE_DATE=/{print $1}' Linux/src/gather_azhpc_vm_diagnostics.sh | cut -d= -f2)
+            today=$(date --utc +%Y%m%d)
+            new_version=$(case "$old_date" in
+              "$today") echo -n "$today-01" ;;
+              "$today-"*) 
+                old_minor=$(echo "$old_date" | cut -d- -f2)
+                printf "%d-%02d" "$today" $((old_minor + 1))
+                ;;
+              *) echo -n "$today" ;;
+            esac)
+
+            sed -E -i "s/RELEASE_DATE=[0-9]+(-[0-9]+)?/RELEASE_DATE=$new_version/g" Linux/src/gather_azhpc_vm_diagnostics.sh
+
+            git config user.name "GitHub Actions Bot"
+            git config user.email "<>"
+            
+            git add Linux/src/gather_azhpc_vm_diagnostics.sh
+            git commit -m "increment version number"
+            git push
+          fi
