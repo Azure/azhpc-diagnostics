@@ -175,7 +175,7 @@ is_infiniband_sku() {
 }
 
 is_endure_sku() {
-    echo "$1" | grep -Eiq '^Standard_(H16m?r|NC24r)'
+    echo "$1" | grep -Eiq '^Standard_(H16m?r|NC24rs?)$'
 }
 
 is_nvidia_sku() {
