@@ -45,6 +45,10 @@ function setup {
     run is_endure_sku Standard_NC24rs
     assert_success
     refute_output
+    
+    run is_endure_sku Standard_NC24rs_v3
+    assert_failure
+    refute_output
 
     run is_endure_sku Standard_H16r
     assert_success
