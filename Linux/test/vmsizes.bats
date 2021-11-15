@@ -8,7 +8,7 @@ function setup {
 }
 
 @test "is_infiniband_sku" {
-    run is_infiniband_sku Standard_NC24rs
+    run is_infiniband_sku Standard_NC24r
     assert_success
     refute_output
 
@@ -46,7 +46,7 @@ function setup {
 }
 
 @test "is_endure_sku" {
-    run is_endure_sku Standard_NC24rs
+    run is_endure_sku Standard_NC24r
     assert_success
     refute_output
     
@@ -92,7 +92,7 @@ function setup {
 }
 
 @test "is_nvidia_sku" {
-    run is_nvidia_sku Standard_NC24rs
+    run is_nvidia_sku Standard_NC24r
     assert_success
     refute_output
 
@@ -130,7 +130,7 @@ function setup {
 }
 
 @test "is_nvidia_compute_sku" {
-    run is_nvidia_compute_sku Standard_NC24rs
+    run is_nvidia_compute_sku Standard_NC24r
     assert_success
     refute_output
 
@@ -168,7 +168,7 @@ function setup {
 }
 
 @test "is_vis_sku" {
-    run is_vis_sku Standard_NC24rs
+    run is_vis_sku Standard_NC24r
     assert_failure
     refute_output
 
@@ -206,7 +206,7 @@ function setup {
 }
 
 @test "is_amd_gpu_sku" {
-    run is_amd_gpu_sku Standard_NC24rs
+    run is_amd_gpu_sku Standard_NC24r
     assert_failure
     refute_output
 
