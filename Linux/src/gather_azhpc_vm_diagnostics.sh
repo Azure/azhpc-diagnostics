@@ -197,7 +197,7 @@ is_nvidia_sku() {
     [[ "$clean" =~ ^standard_nv(12|24|48)s_v3$ ]]
 }
 
-is_nvidia_compute_sku() {
+is_gpu_compute_sku() {
     echo "$1" | cut -d_ -f1 --complement | grep -Eiq '^N(C|D)'
 }
 
@@ -978,7 +978,7 @@ function main {
         check_page_retirement
         check_missing_gpus
         check_pci_bandwidth
-        if is_nvidia_compute_sku "$VM_SIZE"; then
+        if is_gpu_compute_sku "$VM_SIZE"; then
             check_nouveau
         fi
     fi
