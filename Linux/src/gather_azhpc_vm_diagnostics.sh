@@ -179,15 +179,15 @@ is_endure_sku() {
 }
 
 is_nvidia_sku() {
-    echo "$1" | cut -d_ -f1 --complement | grep -iv '^NV.*_v4' | grep -Eq '^N(C|D|V)'
+    echo "$1" | cut -d_ -f1 --complement | grep -iv '^NV.*_v4' | grep -Eiq '^N(C|D|V)'
 }
 
 is_nvidia_compute_sku() {
-    echo "$1" | cut -d_ -f1 --complement | grep -Eq '^N(C|D)'
+    echo "$1" | cut -d_ -f1 --complement | grep -Eiq '^N(C|D)'
 }
 
 is_vis_sku() {
-    echo "$1" | cut -d_ -f1 --complement | grep -q '^NV'
+    echo "$1" | cut -d_ -f1 --complement | grep -Eiq '^NV'
 }
 
 is_amd_gpu_sku() {

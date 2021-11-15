@@ -20,6 +20,10 @@ function setup {
     assert_success
     refute_output
 
+    run is_infiniband_sku Standard_nd96asr_v4
+    assert_success
+    refute_output
+
     run is_infiniband_sku Standard_NV32as_v4
     assert_failure
     refute_output
@@ -51,6 +55,10 @@ function setup {
     refute_output
 
     run is_endure_sku Standard_H16r
+    assert_success
+    refute_output
+
+    run is_endure_sku Standard_h16r
     assert_success
     refute_output
 
@@ -96,6 +104,10 @@ function setup {
     assert_success
     refute_output
 
+    run is_nvidia_sku Standard_nd96asr_v4
+    assert_success
+    refute_output
+
     run is_nvidia_sku Standard_NV32as_v4
     assert_failure
     refute_output
@@ -127,6 +139,10 @@ function setup {
     refute_output
 
     run is_nvidia_compute_sku Standard_ND96asr_v4
+    assert_success
+    refute_output
+
+    run is_nvidia_compute_sku Standard_nd96asr_v4
     assert_success
     refute_output
 
@@ -168,6 +184,10 @@ function setup {
     assert_success
     refute_output
 
+    run is_vis_sku Standard_nv32as_v4
+    assert_success
+    refute_output
+
     run is_vis_sku Standard_NV48s_v3
     assert_success
     refute_output
@@ -199,6 +219,10 @@ function setup {
     refute_output
 
     run is_amd_gpu_sku Standard_NV32as_v4
+    assert_success
+    refute_output
+    
+    run is_amd_gpu_sku Standard_nv32as_v4
     assert_success
     refute_output
 
