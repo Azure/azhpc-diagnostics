@@ -179,7 +179,22 @@ is_endure_sku() {
 }
 
 is_nvidia_sku() {
-    echo "$1" | cut -d_ -f1 --complement | grep -iv '^NV.*_v4' | grep -Eiq '^N(C|D|V)'
+    local clean
+    clean=$(echo "$1" | sed s/_Promo//g | tr '[:upper:]' '[:lower:]')
+
+    [[ "$clean" =~ ^standard_nc(6|12|24r?)$ ]] ||
+    [[ "$clean" =~ ^standard_nc(6|12|24r?)s_v2$ ]] ||
+    [[ "$clean" =~ ^standard_nc(6|12|24r?)s_v3$ ]] ||
+    \
+    [[ "$clean" =~ ^standard_nc(4|8|16|32)as_t4_v3$ ]] ||
+    \
+    [[ "$clean" =~ ^standard_nd(6|12|24r?)s$ ]] ||
+    [[ "$clean" =~ ^standard_nd40r?s_v2$ ]] ||
+    [[ "$clean" =~ ^standard_nd96am?sr(_A100)?_v4$ ]] ||
+    \
+    [[ "$clean" =~ ^standard_nv(6|12|24)$ ]] ||
+    [[ "$clean" =~ ^standard_nv(6|12|24)s_v2$ ]] ||
+    [[ "$clean" =~ ^standard_nv(12|24|48)s_v3$ ]]
 }
 
 is_nvidia_compute_sku() {
@@ -191,7 +206,10 @@ is_vis_sku() {
 }
 
 is_amd_gpu_sku() {
-    echo "$1" | cut -d_ -f1 --complement  | grep -iq '^NV.*_v4'
+    local clean
+    clean=$(echo "$1" | sed s/_Promo//g | tr '[:upper:]' '[:lower:]')
+    
+    [[ "$clean" =~ ^standard_nv(4|8|16|32)as_v4$ ]]
 }
 
 get_cpu_list() {

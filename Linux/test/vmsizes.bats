@@ -124,6 +124,10 @@ function setup {
     assert_failure
     refute_output
 
+    run is_nvidia_sku Standard_NC00_unknown_v0
+    assert_failure
+    refute_output
+
     run is_nvidia_sku Standard_A2
     assert_failure
     refute_output
@@ -159,6 +163,10 @@ function setup {
     refute_output
 
     run is_nvidia_compute_sku Standard_NP40s
+    assert_failure
+    refute_output
+
+    run is_nvidia_sku Standard_NC00_unknown_v0
     assert_failure
     refute_output
 
@@ -235,6 +243,10 @@ function setup {
     refute_output
 
     run is_amd_gpu_sku Standard_NP40s
+    assert_failure
+    refute_output
+
+    run is_nvidia_sku Standard_NC00_unknown_v0
     assert_failure
     refute_output
 
