@@ -133,36 +133,36 @@ function setup {
     refute_output
 }
 
-@test "is_nvidia_compute_sku" {
-    run is_nvidia_compute_sku Standard_NC24r
+@test "is_gpu_compute_sku" {
+    run is_gpu_compute_sku Standard_NC24r
     assert_success
     refute_output
 
-    run is_nvidia_compute_sku Standard_NC6
+    run is_gpu_compute_sku Standard_NC6
     assert_success
     refute_output
 
-    run is_nvidia_compute_sku Standard_ND96asr_v4
+    run is_gpu_compute_sku Standard_ND96asr_v4
     assert_success
     refute_output
 
-    run is_nvidia_compute_sku Standard_nd96asr_v4
+    run is_gpu_compute_sku Standard_nd96asr_v4
     assert_success
     refute_output
 
-    run is_nvidia_compute_sku Standard_NV32as_v4
+    run is_gpu_compute_sku Standard_NV32as_v4
     assert_failure
     refute_output
 
-    run is_nvidia_compute_sku Standard_NV48s_v3
+    run is_gpu_compute_sku Standard_NV48s_v3
     assert_failure
     refute_output
 
-    run is_nvidia_compute_sku Standard_HB60rs
+    run is_gpu_compute_sku Standard_HB60rs
     assert_failure
     refute_output
 
-    run is_nvidia_compute_sku Standard_NP40s
+    run is_gpu_compute_sku Standard_NP40s
     assert_failure
     refute_output
 
@@ -170,7 +170,7 @@ function setup {
     assert_failure
     refute_output
 
-    run is_nvidia_compute_sku Standard_A2
+    run is_gpu_compute_sku Standard_A2
     assert_failure
     refute_output
 }
