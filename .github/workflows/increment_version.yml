@@ -1,8 +1,8 @@
 name: Increment HPCDiag version number
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    branches: [ main ]
+
 jobs:
   increment_version:
     runs-on: ubuntu-latest
