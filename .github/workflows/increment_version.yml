@@ -14,6 +14,7 @@ jobs:
 
       - name: increment version number in main script
         run: |
+          git status
           last_versioned_commit=$(git blame Linux/src/gather_azhpc_vm_diagnostics.sh | grep RELEASE_DATE= | cut -d' ' -f1)
           if ! git diff --exit-code "$last_versioned_commit" -- Linux/src/gather_azhpc_vm_diagnostics.sh; then
             old_date=$(awk '/RELEASE_DATE=/{print $1}' Linux/src/gather_azhpc_vm_diagnostics.sh | cut -d= -f2)
