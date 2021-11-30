@@ -1,10 +1,10 @@
-name: Increment HPCDiag version number
+name: Enforce Increment HPCDiag version number
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    branches: [ main ]
+
 jobs:
-  increment_version:
+  enforce_increment_version:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -14,25 +14,37 @@ jobs:
 
       - name: increment version number in main script
         run: |
-          last_versioned_commit=$(git blame Linux/src/gather_azhpc_vm_diagnostics.sh | grep RELEASE_DATE= | cut -d' ' -f1)
-          if ! git diff --exit-code "$last_versioned_commit" -- Linux/src/gather_azhpc_vm_diagnostics.sh; then
-            old_date=$(awk '/RELEASE_DATE=/{print $1}' Linux/src/gather_azhpc_vm_diagnostics.sh | cut -d= -f2)
-            today=$(date --utc +%Y%m%d)
-            new_version=$(case "$old_date" in
-              "$today") echo -n "$today-01" ;;
-              "$today-"*) 
-                old_minor=$(echo "$old_date" | cut -d- -f2)
-                printf "%d-%02d" "$today" $((old_minor + 1))
-                ;;
-              *) echo -n "$today" ;;
-            esac)
+          if ! git diff --exit-code origin/main -- Linux/src/gather_azhpc_vm_diagnostics.sh >/dev/null; then
+            prev_version=$(git show origin/main:Linux/src/gather_azhpc_vm_diagnostics.sh | grep -Eo RELEASE_DATE=[^[:space:]]+ | cut -d'=' -f2)
+            prev_date=$(echo "$prev_version" | cut -d- -f1)
+            observed_version=$(cat Linux/src/gather_azhpc_vm_diagnostics.sh | grep -Eo RELEASE_DATE=[^[:space:]]+ | cut -d'=' -f2)
+            latest_commit_date=$(git log --format=format:%cs --follow -- Linux/src/gather_azhpc_vm_diagnostics.sh | sort -r | head -1 | tr -d '-')
 
-            sed -E -i "s/RELEASE_DATE=[0-9]+(-[0-9]+)?/RELEASE_DATE=$new_version/g" Linux/src/gather_azhpc_vm_diagnostics.sh
+            if [[ "$latest_commit_date" > "$prev_date" ]]; then
+              expected_version="$latest_commit_date"
+            else
+              expected_version=$(case "$prev_version" in
+                *-*) 
+                  prev_date=$(echo "$prev_version" | cut -d- -f1)
+                  prev_minor=$(echo "$prev_version" | cut -d- -f2)
+                  printf "%d-%02d" "$prev_date" $((prev_minor + 1))
+                  ;;
+                *) echo -n "$prev_version-01" ;;
+              esac)
+            fi
 
-            git config user.name "GitHub Actions Bot"
-            git config user.email "<>"
-            
-            git add Linux/src/gather_azhpc_vm_diagnostics.sh
-            git commit -m "increment version number"
-            git push
+            if [ "$observed_version" != "$expected_version" ]; then
+              echo "Expected version $expected_version. Please increment version number."
+              false
+            else
+              echo "Version number is incremented correctly. Proceed."
+              true
+            fi
+          else
+            echo 'No changes to main script, skipping version number check.'
+            true
           fi
+
+
+
+
