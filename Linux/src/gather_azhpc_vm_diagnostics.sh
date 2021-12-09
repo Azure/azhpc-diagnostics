@@ -72,7 +72,7 @@ GPU_PCI_CLASS_ID=0302
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20211108 # update upon each release
+RELEASE_DATE=20211208 # update upon each release
 COMMIT_HASH=$( 
     (
         command -v git >/dev/null &&
@@ -190,7 +190,7 @@ is_nvidia_sku() {
     \
     [[ "$clean" =~ ^standard_nd(6|12|24r?)s$ ]] ||
     [[ "$clean" =~ ^standard_nd40r?s_v2$ ]] ||
-    [[ "$clean" =~ ^standard_nd96am?sr(_A100)?_v4$ ]] ||
+    [[ "$clean" =~ ^standard_nd96am?sr(_a100)?_v4$ ]] ||
     \
     [[ "$clean" =~ ^standard_nv(6|12|24)$ ]] ||
     [[ "$clean" =~ ^standard_nv(6|12|24)s_v2$ ]] ||
