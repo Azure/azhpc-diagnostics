@@ -72,7 +72,7 @@ GPU_PCI_CLASS_ID=0302
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20211208 # update upon each release
+RELEASE_DATE=20220103 # update upon each release
 COMMIT_HASH=$( 
     (
         command -v git >/dev/null &&
@@ -522,12 +522,12 @@ run_infiniband_diags() {
         mkdir -p "$DIAG_DIR/Infiniband/$device/pkeys"
 
         local pkey_count
-        pkey_count=$(find "$dir/" -path '*pkeys/*' -execdir echo {} \; | wc -l)
+        local pkey_dir="$SYSFS_PATH/class/infiniband/$device/ports/1/pkeys"
+        pkey_count=$(find "$pkey_dir/" -maxdepth 1 -name '[0-9]*' | wc -l)
         if [ "$pkey_count" -gt 0 ]; then
-            mkdir -p "$DIAG_DIR/Infiniband"
-            print_log -e "\tFound $pkey_count pkeys in $dir; copying them to {output}/Infiniband/$device/pkeys/"
-            find "$dir/" -path '*pkeys/*' \
-                -execdir cp {} "$(realpath "$DIAG_DIR")/Infiniband/$device/pkeys" \;
+            mkdir -p "$(realpath "$DIAG_DIR")/Infiniband/$device/pkeys"
+            print_log -e "\tFound $pkey_count pkeys in $pkey_dir; copying them to {output}/Infiniband/$device/pkeys/"
+            cp "$SYSFS_PATH/class/infiniband/$device/ports/1/pkeys/"* "$(realpath "$DIAG_DIR")/Infiniband/$device/pkeys"
         else
             print_log -e "\tFound no pkeys in $dir"
         fi
