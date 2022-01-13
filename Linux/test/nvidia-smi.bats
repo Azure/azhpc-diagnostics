@@ -186,3 +186,19 @@ function teardown {
     assert_output --partial '00000000-0000-0000-0000-00000000000a'
     assert_output --partial 'UNKNOWN'
 }
+
+@test "notice installed nvidia kernel module" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    MOCK_LSMOD_FILE="$BATS_TEST_DIRNAME/samples/lsmod.nvidia.out"
+
+    run is_nvidia_driver_installed
+    assert_success
+}
+
+@test "notice missing nvidia kernel module" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    MOCK_LSMOD_FILE="$BATS_TEST_DIRNAME/samples/lsmod.wsl.out"
+
+    run is_nvidia_driver_installed
+    assert_failure
+}

@@ -109,6 +109,10 @@ function lspci {
     done
 }
 
+function lsmod {
+    cat "$MOCK_LSMOD_FILE"
+}
+
 function lsvmbus {
     echo "Hyper-V VMBus information goes here"
 }

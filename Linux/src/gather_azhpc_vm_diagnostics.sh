@@ -34,6 +34,7 @@
 #   - phys_state (ENDURE)
 # - Nvidia GPU
 #   - nvidia-bug-report.log.gz
+#   - nvidia-installer.log
 #   - nvidia-vmext-status
 #   - nvidia-smi.out
 #   - nvidia-smi-q.out
@@ -72,7 +73,7 @@ GPU_PCI_CLASS_ID=0302
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20220103 # update upon each release
+RELEASE_DATE=20220118 # update upon each release
 COMMIT_HASH=$( 
     (
         command -v git >/dev/null &&
@@ -605,6 +606,20 @@ run_dcgm() {
     popd >/dev/null || failwith "Failed to popd back to working directory"
 }
 
+is_nvidia_driver_installed() (
+    lsmod | awk '{print $1}' | grep -Eiq '^nvidia$'
+)
+
+investigate_nvidia_driver_installation() (
+    if [ -f /var/log/nvidia-installer.log ]; then
+        mkdir -p "$DIAG_DIR/Nvidia"
+        print_log -e "\tCopying Nvidia GPU Driver Installer logs to {output}/Nvidia/nvidia-installer.log"
+        cp /var/log/nvidia-installer.log "$DIAG_DIR/Nvidia"
+    else
+        print_log -e "\tNo Nvidia GPU Driver Installer logs found."
+    fi
+)
+
 run_nvidia_diags() {
 
     if [ -f /var/log/azure/nvidia-vmext-status ]; then
@@ -613,7 +628,12 @@ run_nvidia_diags() {
         cp /var/log/azure/nvidia-vmext-status "$DIAG_DIR/Nvidia"
     fi
 
-    if command -v nvidia-smi >/dev/null; then
+    if ! is_nvidia_driver_installed; then
+        print_log -e "No NVIDIA driver found. Checking for installation logs"
+        investigate_nvidia_driver_installation
+    elif ! command -v nvidia-smi >/dev/null; then
+        print_log -e "NVIDIA driver is installed, but can't find nvidia-smi. Please check that it's on the PATH."
+    else
         mkdir -p "$DIAG_DIR/Nvidia"
         print_log -e "\tQuerying Nvidia GPU Info, writing to {output}/Nvidia/nvidia-smi-q.out"
         timeout 5m nvidia-smi -q >"$DIAG_DIR/Nvidia/nvidia-smi-q.out"
@@ -623,14 +643,11 @@ run_nvidia_diags() {
             print_log -e "\tRunning plain nvidia-smi, writing to {output}/Nvidia/nvidia-smi.out"
             timeout 5m nvidia-smi >"$DIAG_DIR/Nvidia/nvidia-smi.out"
         fi
-
         print_log -e "\tDumping Nvidia GPU internal state to {output}/Nvidia/nvidia-debugdump.zip"
         nvidia-debugdump --dumpall --file "$DIAG_DIR/Nvidia/nvidia-debugdump.zip"
         if is_dcgm_installed; then
             run_dcgm
         fi
-    else
-        print_log -e "\tNo Nvidia Driver Detected"
     fi
 
     if command -v nvidia-bug-report.sh >/dev/null; then

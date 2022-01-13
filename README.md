@@ -99,6 +99,7 @@ Note that not all these files will be generated on all runs. What appears below 
 |   -- phys_state (ENDURE)
 |-- Nvidia
     -- nvidia-bug-report.log.gz
+    -- nvidia-installer.log
     -- nvidia-vmext.log
     -- nvidia-smi.out
     -- nvidia-smi-q.out
