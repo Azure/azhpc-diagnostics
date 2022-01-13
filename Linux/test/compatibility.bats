@@ -11,6 +11,17 @@ function setup() {
     load "test_helper/bats-assert/load"
 }
 
+@test "Confirm that lsmod output is still compatible" {
+    run lsmod
+    for i in "${!lines[@]}"; do
+        if ((i == 0)); then
+            assert_line --index $i --regexp '^Module\s+Size\s+Used by$'
+        else
+            assert_line --index $i --regexp '^\S+\s+[0-9]+\s+[0-9]+(\s+\S*)?$'
+        fi
+    done
+}
+
 @test "Confirm that nvidia-smi sbe/dbe query is still compatible" {
     if ! nvidia-smi >/dev/null; then
         skip "nvidia-smi not installed"

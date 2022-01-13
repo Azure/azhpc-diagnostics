@@ -1,0 +1,95 @@
+Module                  Size  Used by
+unix_diag              12601  0 
+af_packet_diag         12611  0 
+netlink_diag           12669  0 
+udp_diag               12801  0 
+tcp_diag               12591  0 
+inet_diag              18949  2 tcp_diag,udp_diag
+binfmt_misc            17468  1 
+iptable_filter         12810  0 
+nf_conntrack_ipv4      15053  1 
+nf_defrag_ipv4         12729  1 nf_conntrack_ipv4
+xt_owner               12534  1 
+xt_conntrack           12760  1 
+nf_conntrack          139264  2 xt_conntrack,nf_conntrack_ipv4
+iptable_security       12705  1 
+gdrdrv                 17982  0 
+ext4                  584133  1 
+mbcache                14958  1 ext4
+jbd2                  107486  1 ext4
+cuse                   13274  0 
+fuse                  100350  1 cuse
+rdma_ucm               27022  0 
+rdma_cm                61027  1 rdma_ucm
+iw_cm                  43918  1 rdma_cm
+ib_ipoib              124872  0 
+ib_cm                  53085  2 rdma_cm,ib_ipoib
+ib_umad                27744  0 
+mlx5_ib               371350  0 
+udf                    93793  0 
+crc_itu_t              12707  1 udf
+ib_uverbs             132788  2 mlx5_ib,rdma_ucm
+sunrpc                358543  1 
+dm_mirror              22326  0 
+dm_region_hash         20813  1 dm_mirror
+dm_log                 18411  2 dm_region_hash,dm_mirror
+dm_mod                124501  2 dm_log,dm_mirror
+vfat                   17461  1 
+fat                    65950  1 vfat
+nvidia_drm             48984  0 
+joydev                 17389  0 
+nvidia_modeset       1221700  1 nvidia_drm
+sg                     40719  0 
+drm_kms_helper        186531  1 nvidia_drm
+syscopyarea            12529  1 drm_kms_helper
+sysfillrect            12701  1 drm_kms_helper
+sysimgblt              12640  1 drm_kms_helper
+hv_utils               25894  1 
+hv_balloon             22858  0 
+fb_sys_fops            12703  1 drm_kms_helper
+drm                   456166  3 drm_kms_helper,nvidia_drm
+crc32_pclmul           13133  0 
+ghash_clmulni_intel    13273  0 
+drm_panel_orientation_quirks    17180  1 drm
+aesni_intel           189456  0 
+lrw                    13286  1 aesni_intel
+gf128mul               15139  1 lrw
+glue_helper            13990  1 aesni_intel
+ablk_helper            13597  1 aesni_intel
+pcspkr                 12718  0 
+cryptd                 21190  3 ghash_clmulni_intel,aesni_intel,ablk_helper
+nv_peer_mem            13163  0 
+knem                   36922  0 
+ib_core               357701  9 rdma_cm,ib_cm,iw_cm,nv_peer_mem,mlx5_ib,ib_umad,ib_uverbs,rdma_ucm,ib_ipoib
+ip_tables              27126  2 iptable_security,iptable_filter
+xfs                   997727  2 
+libcrc32c              12644  2 xfs,nf_conntrack
+sd_mod                 46281  566 
+sr_mod                 22416  0 
+crc_t10dif             12912  1 sd_mod
+cdrom                  42600  1 sr_mod
+crct10dif_generic      12647  0 
+mlx5_core            1330983  1 mlx5_ib
+mlxfw                  22321  1 mlx5_core
+nvidia              33992148  259 nv_peer_mem,gdrdrv,nvidia_modeset
+psample                13526  1 mlx5_core
+ptp                    23551  3 hv_utils,mlx5_core
+nvme                   32382  0 
+pps_core               19057  1 ptp
+nvme_core              63547  1 nvme
+devlink                60067  1 mlx5_core
+xpmem                  32569  0 
+hv_storvsc             22546  4 
+scsi_transport_fc      64007  1 hv_storvsc
+serio_raw              13434  0 
+hv_netvsc              50802  0 
+scsi_tgt               20027  1 scsi_transport_fc
+pci_hyperv             30751  0 
+hyperv_fb              18045  1 
+hyperv_keyboard        12787  0 
+hid_hyperv             13118  0 
+crct10dif_pclmul       14307  1 
+crct10dif_common       12595  3 crct10dif_pclmul,crct10dif_generic,crc_t10dif
+crc32c_intel           22094  1 
+hv_vmbus               97049  8 hv_balloon,hyperv_keyboard,hv_netvsc,hid_hyperv,hv_utils,hyperv_fb,hv_storvsc,pci_hyperv
+mlx_compat             55063  10 rdma_cm,ib_cm,iw_cm,mlx5_ib,ib_core,ib_umad,ib_uverbs,mlx5_core,rdma_ucm,ib_ipoib

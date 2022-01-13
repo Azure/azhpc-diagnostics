@@ -1,0 +1,76 @@
+Module                  Size  Used by
+nvidia_drm             57344  0
+nvidia_modeset       1200128  1 nvidia_drm
+nvidia              35315712  1 nvidia_modeset
+drm_kms_helper        188416  1 nvidia_drm
+syscopyarea            16384  1 drm_kms_helper
+sysfillrect            16384  1 drm_kms_helper
+sysimgblt              16384  1 drm_kms_helper
+fb_sys_fops            16384  1 drm_kms_helper
+drm                   483328  4 drm_kms_helper,nvidia,nvidia_drm
+drm_panel_orientation_quirks    20480  1 drm
+i2c_core               77824  3 drm_kms_helper,nvidia,drm
+xt_owner               16384  1
+xt_conntrack           16384  1
+nf_conntrack          139264  1 xt_conntrack
+nf_defrag_ipv6         24576  1 nf_conntrack
+iptable_security       16384  1
+nf_defrag_ipv4         16384  1 nf_conntrack
+bpfilter               24576  0
+udf                   118784  0
+crc_itu_t              16384  1 udf
+nls_iso8859_1          16384  1
+rapl                   24576  0
+serio_raw              20480  0
+hv_balloon             32768  0
+joydev                 24576  0
+sch_fq_codel           20480  9
+ib_iser                49152  0
+rdma_cm                65536  1 ib_iser
+iw_cm                  49152  1 rdma_cm
+ib_cm                  57344  1 rdma_cm
+iscsi_tcp              24576  0
+libiscsi_tcp           28672  1 iscsi_tcp
+libiscsi               57344  3 libiscsi_tcp,iscsi_tcp,ib_iser
+scsi_transport_iscsi   110592  4 libiscsi_tcp,iscsi_tcp,ib_iser,libiscsi
+ip_tables              32768  1 iptable_security
+x_tables               45056  4 xt_conntrack,iptable_security,xt_owner,ip_tables
+autofs4                45056  2
+btrfs                1241088  0
+zstd_compress         163840  1 btrfs
+raid10                 57344  0
+raid456               155648  0
+async_raid6_recov      24576  1 raid456
+async_memcpy           20480  2 raid456,async_raid6_recov
+async_pq               24576  2 raid456,async_raid6_recov
+async_xor              20480  3 async_pq,raid456,async_raid6_recov
+async_tx               20480  5 async_pq,async_memcpy,async_xor,raid456,async_raid6_recov
+xor                    24576  2 async_xor,btrfs
+raid6_pq              114688  4 async_pq,btrfs,raid456,async_raid6_recov
+libcrc32c              16384  3 nf_conntrack,btrfs,raid456
+raid1                  45056  0
+raid0                  24576  0
+multipath              20480  0
+linear                 20480  0
+mlx4_ib               196608  0
+ib_uverbs             126976  1 mlx4_ib
+ib_core               307200  6 rdma_cm,mlx4_ib,iw_cm,ib_iser,ib_uverbs,ib_cm
+mlx4_core             299008  1 mlx4_ib
+hid_generic            16384  0
+crct10dif_pclmul       16384  1
+crc32_pclmul           16384  0
+ghash_clmulni_intel    16384  0
+aesni_intel           372736  0
+crypto_simd            16384  1 aesni_intel
+cryptd                 24576  2 crypto_simd,ghash_clmulni_intel
+hyperv_fb              20480  1
+hid_hyperv             16384  0
+cfbfillrect            16384  2 drm_kms_helper,hyperv_fb
+cfbimgblt              16384  2 drm_kms_helper,hyperv_fb
+glue_helper            16384  1 aesni_intel
+hid                   118784  2 hid_hyperv,hid_generic
+pata_acpi              16384  0
+hyperv_keyboard        16384  0
+cfbcopyarea            16384  2 drm_kms_helper,hyperv_fb
+hv_netvsc              77824  0
+hv_utils               36864  1
