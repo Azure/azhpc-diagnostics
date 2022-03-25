@@ -38,6 +38,7 @@
 #   - nvidia-vmext-status
 #   - nvidia-smi.out
 #   - nvidia-smi-q.out
+#   - nvidia-smi-nvlink.out
 #   - nvidia-debugdump.zip (only Nvidia can read)
 #   - dcgm-diag-2.log
 #   - dcgm-diag-3.log
@@ -73,7 +74,7 @@ GPU_PCI_CLASS_ID=0302
 declare -A CPU_LIST
 CPU_LIST=(["Standard_HB120rs_v2"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117"
           ["Standard_HB60rs"]="0 1,5,9,13,17,21,25,29,33,37,41,45,49,53,57")
-RELEASE_DATE=20220316 # update upon each release
+RELEASE_DATE=20220328 # update upon each release
 COMMIT_HASH=$( 
     (
         command -v git >/dev/null &&
@@ -648,6 +649,8 @@ run_nvidia_diags() {
         if is_dcgm_installed; then
             run_dcgm
         fi
+        print_log -e "\tChecking nvlinks"
+        nvidia-smi nvlink -s >"$DIAG_DIR/Nvidia/nvlink.out"
     fi
 
     if command -v nvidia-bug-report.sh >/dev/null; then
@@ -779,6 +782,13 @@ function check_missing_gpus {
         fi
     done
     rm "$nvsmi_domains"
+}
+
+function check_nvlinks {
+    awk '/GPU/{i=$2} /inactive/{print i}' "$DIAG_DIR/Nvidia/nvidia-smi-nvlink.out" | tr -d : | uniq |
+    while read -r bad_gpu; do
+        report_bad_gpu --index $bad_gpu --reason "NVLINK(s) inactive"
+    done
 }
 
 function check_nouveau {
@@ -995,6 +1005,7 @@ function main {
         check_page_retirement
         check_missing_gpus
         check_pci_bandwidth
+        check_nvlinks
         if is_gpu_compute_sku "$VM_SIZE"; then
             check_nouveau
         fi
