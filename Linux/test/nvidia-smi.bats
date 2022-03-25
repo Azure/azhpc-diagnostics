@@ -202,3 +202,12 @@ function teardown {
     run is_nvidia_driver_installed
     assert_failure
 }
+
+@test "notice inactive nvlinks" {
+    . "$BATS_TEST_DIRNAME/mocks.bash"
+    cp "$BATS_TEST_DIRNAME/samples/nvlink.bad.out" "$DIAG_DIR/Nvidia/nvidia-smi-nvlink.out"
+
+    run check_nvlinks
+    assert_output --partial "NVLINK(s) inactive"
+    assert_output --partial "0000000000004"
+}

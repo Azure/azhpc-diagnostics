@@ -1,0 +1,49 @@
+GPU 0: Tesla V100-SXM2-32GB (UUID: GPU-b45d9bdf-1feb-0bd0-c8c5-9d833071005d)
+         Link 0: 25.781 GB/s
+         Link 1: 25.781 GB/s
+         Link 2: 25.781 GB/s
+         Link 3: 25.781 GB/s
+         Link 4: 25.781 GB/s
+         Link 5: 25.781 GB/s
+GPU 1: Tesla V100-SXM2-32GB (UUID: GPU-b5c990f9-037b-c1c8-380e-f7b385a2b374)
+         Link 0: 25.781 GB/s
+         Link 1: 25.781 GB/s
+         Link 2: 25.781 GB/s
+         Link 3: 25.781 GB/s
+         Link 4: 25.781 GB/s
+         Link 5: 25.781 GB/s
+GPU 2: Tesla V100-SXM2-32GB (UUID: GPU-40db57bc-d1b7-6e28-7a2f-0705369b263e)
+         Link 0: 25.781 GB/s
+         Link 1: 25.781 GB/s
+         Link 2: 25.781 GB/s
+         Link 3: 25.781 GB/s
+         Link 4: 25.781 GB/s
+         Link 5: 25.781 GB/s
+GPU 3: Tesla V100-SXM2-32GB (UUID: GPU-50b1bd2e-77ee-2731-fd2f-17c44103b7b9)
+         Link 0: 25.781 GB/s
+         Link 1: 25.781 GB/s
+         Link 2: 25.781 GB/s
+         Link 3: <inactive>
+         Link 4: 25.781 GB/s
+         Link 5: <inactive>
+GPU 4: Tesla V100-SXM2-32GB (UUID: GPU-613d79f4-c0d2-e7b8-dc32-9c4729215e52)
+         Link 0: 25.781 GB/s
+         Link 1: <inactive>
+         Link 2: 25.781 GB/s
+         Link 3: 25.781 GB/s
+         Link 4: 25.781 GB/s
+         Link 5: 25.781 GB/s
+GPU 5: Tesla V100-SXM2-32GB (UUID: GPU-954f9e77-4d6c-a86d-b920-0f09265558cb)
+         Link 0: <inactive>
+         Link 1: 25.781 GB/s
+         Link 2: 25.781 GB/s
+         Link 3: 25.781 GB/s
+         Link 4: <inactive>
+         Link 5: 25.781 GB/s
+GPU 6: Tesla V100-SXM2-32GB (UUID: GPU-8e8acea6-f648-f999-0364-78cfad39249d)
+         Link 0: 25.781 GB/s
+         Link 1: <inactive>
+         Link 2: 25.781 GB/s
+         Link 3: 25.781 GB/s
+         Link 4: 25.781 GB/s
+         Link 5: 25.781 GB/s

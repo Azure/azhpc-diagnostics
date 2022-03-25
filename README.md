@@ -103,6 +103,7 @@ Note that not all these files will be generated on all runs. What appears below 
     -- nvidia-vmext.log
     -- nvidia-smi.out
     -- nvidia-smi-q.out
+    -- nvidia-smi-nvlink.out
     -- nvidia-debugdump.zip (only Nvidia can read)
     -- dcgm-diag-2.log
     -- dcgm-diag-3.log
@@ -142,7 +143,7 @@ Note that not all these files will be generated on all runs. What appears below 
 | ethtool | ethtool eth1 | Infiniband/ethtool.out | Status of IB interface on ENDURE VMs |
 | sysfs | cp /sys/class/infiniband/... | Infiniband/rate,state,phys_state | Status of IB interface on ENDURE VMs |
 | NVIDIA Bug Report | nvidia-bug-report.sh | Nvidia/nvidia-bug-report.log.gz | A script that Nvidia has customers run when reporting hardware problems. | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
-| NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.out Nvidia/nvidia-smi-q.out | Checks GPU health and configuration | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
+| NVIDIA System Management Interface | nvidia-smi | Nvidia/nvidia-smi.out Nvidia/nvidia-smi-q.out Nvidia/nvidia-smi-nvlink.out | Checks GPU health and configuration | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
 | NVIDIA Debug Dump | nvidia-debugbump | Nvidia/nvidia-debugdump.zip | Generates a binary blob for use with Nvidia internal engineering tools | [CUDA EULA](https://docs.nvidia.com/cuda/pdf/EULA.pdf) [GRID EULA](https://images.nvidia.com/content/pdf/grid/support/enterprise-eula-grid-and-amgx-supplements.pdf) |
 | NVIDIA Data Center GPU Manager | dcgmi | Nvidia/dcgm-diag-2.log Nvidia/dcgm-diag-3.log Nvidia/nvvs.log Nvidia/stats_*.json | Health monitoring for GPUs in cluster environments | [DCGM EULA](https://developer.download.nvidia.com/compute/DCGM/docs/EULA.pdf) |
 | GPU Driver Extension Logs | cp /var/log/azure/nvidia-vmext-status | Nvidia/nvidia-vmext-status | Logs from the GPU Driver Extension | |

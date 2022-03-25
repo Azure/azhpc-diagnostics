@@ -32,7 +32,8 @@ hpcdiag.err"
 NVIDIA_FILENAMES="Nvidia/nvidia-bug-report.log.gz
 Nvidia/nvidia-smi-q.out
 Nvidia/nvidia-smi.out
-Nvidia/nvidia-debugdump.zip"
+Nvidia/nvidia-debugdump.zip
+Nvidia/nvlink.out"
 
 NVIDIA_EXT_FILENAMES="Nvidia/nvidia-vmext-status"
 
